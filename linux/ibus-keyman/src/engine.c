@@ -41,6 +41,7 @@
 #define KEYMAN_RCTRL 97
 #define KEYMAN_RALT 100
 #define KEYMAN_CAPS 0x3a
+#define KEYMAN_CAPS_KEYSYM  IBUS_KEY_Caps_Lock
 
 typedef struct _IBusKeymanEngine IBusKeymanEngine;
 typedef struct _IBusKeymanEngineClass IBusKeymanEngineClass;
@@ -587,7 +588,8 @@ static gboolean ok_for_single_backspace(const km_kbp_action_item *action_items, 
     return TRUE;
 }
 
-static gboolean process_unicode_char_action(
+static gboolean
+process_unicode_char_action(
   IBusKeymanEngine *keyman,
   const km_kbp_action_item *action_item
 ) {
@@ -692,7 +694,8 @@ process_backspace_action(
   return TRUE;
 }
 
-static gboolean process_persist_action(
+static gboolean
+process_persist_action(
   IBusKeymanEngine *keyman,
   const km_kbp_action_item *action_item
 ) {
@@ -736,6 +739,19 @@ static gboolean process_invalidate_context_action(IBusEngine *engine) {
   return TRUE;
 }
 
+static gboolean
+process_capslock_action(
+  IBusKeymanEngine *keyman,
+  const km_kbp_action_item *action_item
+) {
+  g_message("%s caps-lock", action_item->capsLock ? "Enable" : "Disable");
+
+  ibus_engine_forward_key_event((IBusEngine *)keyman, KEYMAN_CAPS_KEYSYM, KEYMAN_CAPS, IBUS_MOD2_MASK);
+  ibus_engine_forward_key_event((IBusEngine *)keyman, KEYMAN_CAPS_KEYSYM, KEYMAN_CAPS, IBUS_MOD2_MASK | IBUS_RELEASE_MASK);
+
+  return TRUE;
+}
+
 static gboolean process_end_action(IBusKeymanEngine *keyman) {
   keyman->firstsurrogate = 0;
   if (keyman->char_buffer != NULL) {
@@ -751,7 +767,8 @@ static gboolean process_end_action(IBusKeymanEngine *keyman) {
   return TRUE;
 }
 
-static gboolean process_actions(
+static gboolean
+process_actions(
   IBusEngine *engine,
   const km_kbp_action_item *action_items,
   size_t num_action_items
@@ -787,6 +804,10 @@ static gboolean process_actions(
       g_message("INVALIDATE_CONTEXT action %d/%d", i + 1, (int)num_action_items);
       continue_with_next_action = process_invalidate_context_action(engine);
       break;
+    case KM_KBP_IT_CAPSLOCK:
+      g_message("CAPSLOCK action %d/%d", i + 1, (int)num_action_items);
+      continue_with_next_action = process_capslock_action(keyman, &action_items[i]);
+      break;
     case KM_KBP_IT_END:
       g_message("END action %d/%d", i + 1, (int)num_action_items);
       continue_with_next_action = process_end_action(keyman);
@@ -801,103 +822,97 @@ static gboolean process_actions(
 }
 
 static gboolean
-ibus_keyman_engine_process_key_event (IBusEngine     *engine,
-                                    guint           keyval,
-                                    guint           keycode,
-                                    guint           state)
-{
-    IBusKeymanEngine *keyman = (IBusKeymanEngine *) engine;
+ibus_keyman_engine_process_key_event(
+  IBusEngine *engine,
+  guint keyval,
+  guint keycode,
+  guint state
+) {
+  IBusKeymanEngine *keyman = (IBusKeymanEngine *)engine;
 
-    g_message("DAR: ibus_keyman_engine_process_key_event - keyval=%02i, keycode=%02i, state=%02x", keyval, keycode, state);
+  g_message("DAR: ibus_keyman_engine_process_key_event - keyval=%02i, keycode=%02i, state=%02x", keyval, keycode, state);
 
-    gboolean isKeyDown = !!(state & IBUS_RELEASE_MASK);
+  gboolean isKeyDown = !!(state & IBUS_RELEASE_MASK);
 
-    // REVIEW: why don't we handle these keys?
-    switch (keycode) {
-    case KEYMAN_LCTRL:
-      keyman->lctrl_pressed = isKeyDown;
-      break;
-    case KEYMAN_RCTRL:
-      keyman->rctrl_pressed = isKeyDown;
-      break;
-    case KEYMAN_LALT:
-      keyman->lalt_pressed = isKeyDown;
-      break;
-    case KEYMAN_RALT:
-      keyman->ralt_pressed = isKeyDown;
-      break;
+  // REVIEW: why don't we handle these keys?
+  switch (keycode) {
+  case KEYMAN_LCTRL:
+    keyman->lctrl_pressed = isKeyDown;
+    break;
+  case KEYMAN_RCTRL:
+    keyman->rctrl_pressed = isKeyDown;
+    break;
+  case KEYMAN_LALT:
+    keyman->lalt_pressed = isKeyDown;
+    break;
+  case KEYMAN_RALT:
+    keyman->ralt_pressed = isKeyDown;
+    break;
+  }
+
+  if (keycode < 0 || keycode > 255) {
+    g_warning("keycode %d out of range", keycode);
+    return FALSE;
+  }
+
+  if (keycode_to_vk[keycode] == 0) {  // key we don't handle
+    return FALSE;
+  }
+
+  // keyman modifiers are different from X11/ibus
+  uint16_t km_mod_state = 0;
+  if (state & IBUS_SHIFT_MASK) {
+    km_mod_state |= KM_KBP_MODIFIER_SHIFT;
+  }
+  if (state & IBUS_MOD5_MASK) {
+    km_mod_state |= KM_KBP_MODIFIER_RALT;
+    g_message("modstate KM_KBP_MODIFIER_RALT from IBUS_MOD5_MASK");
+  }
+  if (state & IBUS_MOD1_MASK) {
+    if (keyman->ralt_pressed) {
+      km_mod_state |= KM_KBP_MODIFIER_RALT;
+      g_message("modstate KM_KBP_MODIFIER_RALT from ralt_pressed");
     }
+    if (keyman->lalt_pressed) {
+      km_mod_state |= KM_KBP_MODIFIER_LALT;
+      g_message("modstate KM_KBP_MODIFIER_LALT from lalt_pressed");
+    }
+  }
+  if (state & IBUS_CONTROL_MASK) {
+    if (keyman->rctrl_pressed) {
+      km_mod_state |= KM_KBP_MODIFIER_RCTRL;
+      g_message("modstate KM_KBP_MODIFIER_RCTRL from rctrl_pressed");
+    }
+    if (keyman->lctrl_pressed) {
+      km_mod_state |= KM_KBP_MODIFIER_LCTRL;
+      g_message("modstate KM_KBP_MODIFIER_LCTRL from lctrl_pressed");
+    }
+  }
+  if (state & IBUS_LOCK_MASK) {
+    km_mod_state |= KM_KBP_MODIFIER_CAPS;
+  }
+  g_message("before process key event");
+  km_kbp_context *context = km_kbp_state_context(keyman->state);
+  g_free(get_current_context_text(context));
+  g_message("DAR: ibus_keyman_engine_process_key_event - km_mod_state=%x", km_mod_state);
+  km_kbp_status event_status = km_kbp_process_event(keyman->state, keycode_to_vk[keycode], km_mod_state, isKeyDown);
+  context                    = km_kbp_state_context(keyman->state);
+  g_message("after process key event");
+  g_free(get_current_context_text(context));
 
-    if (keycode < 0 || keycode > 255) {
-      g_warning("keycode %d out of range", keycode);
-      return FALSE;
-    }
+  // km_kbp_state_action_items to get action items
+  size_t num_action_items;
+  g_free(keyman->char_buffer);
+  keyman->char_buffer                    = NULL;
+  const km_kbp_action_item *action_items = km_kbp_state_action_items(keyman->state, &num_action_items);
 
-    if (keycode_to_vk[keycode] == 0) { // key we don't handle
-        return FALSE;
-    }
+  if (!process_actions(engine, action_items, num_action_items))
+    return FALSE;
 
-    // keyman modifiers are different from X11/ibus
-    uint16_t km_mod_state = 0;
-    if (state & IBUS_SHIFT_MASK)
-    {
-        km_mod_state |= KM_KBP_MODIFIER_SHIFT;
-    }
-    if (state & IBUS_MOD5_MASK)
-    {
-        km_mod_state |= KM_KBP_MODIFIER_RALT;
-        g_message("modstate KM_KBP_MODIFIER_RALT from IBUS_MOD5_MASK");
-    }
-    if (state & IBUS_MOD1_MASK)
-    {
-        if (keyman->ralt_pressed) {
-            km_mod_state |= KM_KBP_MODIFIER_RALT;
-            g_message("modstate KM_KBP_MODIFIER_RALT from ralt_pressed");
-        }
-        if (keyman->lalt_pressed) {
-            km_mod_state |= KM_KBP_MODIFIER_LALT;
-            g_message("modstate KM_KBP_MODIFIER_LALT from lalt_pressed");
-        }
-    }
-    if (state & IBUS_CONTROL_MASK)
-    {
-        if (keyman->rctrl_pressed) {
-            km_mod_state |= KM_KBP_MODIFIER_RCTRL;
-            g_message("modstate KM_KBP_MODIFIER_RCTRL from rctrl_pressed");
-        }
-        if (keyman->lctrl_pressed) {
-            km_mod_state |= KM_KBP_MODIFIER_LCTRL;
-            g_message("modstate KM_KBP_MODIFIER_LCTRL from lctrl_pressed");
-        }
-    }
-    if (state & IBUS_LOCK_MASK)
-    {
-        km_mod_state |= KM_KBP_MODIFIER_CAPS;
-    }
-    g_message("before process key event");
-    km_kbp_context *context = km_kbp_state_context(keyman->state);
-    g_free(get_current_context_text(context));
-    g_message("DAR: ibus_keyman_engine_process_key_event - km_mod_state=%x", km_mod_state);
-    km_kbp_status event_status =
-        km_kbp_process_event(keyman->state, keycode_to_vk[keycode], km_mod_state, isKeyDown);
-    context = km_kbp_state_context(keyman->state);
-    g_message("after process key event");
-    g_free(get_current_context_text(context));
-
-    // km_kbp_state_action_items to get action items
-    size_t num_action_items;
-    g_free(keyman->char_buffer);
-    keyman->char_buffer = NULL;
-    const km_kbp_action_item *action_items = km_kbp_state_action_items(keyman->state,
-                                                     &num_action_items);
-
-    if (!process_actions(engine, action_items, num_action_items))
-        return FALSE;
-
-    context = km_kbp_state_context(keyman->state);
-    g_message("after processing all actions");
-    g_free(get_current_context_text(context));
-    return TRUE;
+  context = km_kbp_state_context(keyman->state);
+  g_message("after processing all actions");
+  g_free(get_current_context_text(context));
+  return TRUE;
 }
 
 static void
