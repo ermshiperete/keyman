@@ -330,6 +330,10 @@ int run_test(const km::kbp::path &source, const km::kbp::path &compiled) {
 
   // Run through key events, applying output for each event
   for (auto p = next_key(keys); p.vk != 0; p = next_key(keys)) {
+    // Because a normal system tracks caps lock state itself,
+    // we mimic that in the tests. We assume caps lock state is
+    // updated on key_down before the processor receives the
+    // event.
     if (p.vk == KM_KBP_VKEY_CAPS) {
       toggle_caps_lock_state();
     }

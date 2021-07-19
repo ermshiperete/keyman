@@ -25,8 +25,9 @@ c Description: Tests Caps Lock env set
 c option: &platform=linux
 ```
 
-- **capsLock**: allows to set the caps-lock state. The example below turns
-  caps-lock on.
+- **capsLock**: allows to set the caps lock state. The example below turns
+  caps-lock on at the start of the test. `[K_CAPS]` in the **keys** comment
+  allows toggling of caps lock.
 
 ```text
 c capsLock: 1

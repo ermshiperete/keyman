@@ -596,51 +596,30 @@ ibus_keyman_engine_process_key_event (IBusEngine     *engine,
 
     g_message("DAR: ibus_keyman_engine_process_key_event - keyval=%02i, keycode=%02i, state=%02x", keyval, keycode, state);
 
-    gboolean isKeyDown = TRUE;
+    gboolean isKeyDown = !!(state & IBUS_RELEASE_MASK);
 
-    if (state & IBUS_RELEASE_MASK) {
-      isKeyDown = FALSE;
-      switch (keycode) {
-      case KEYMAN_LCTRL:
-        keyman->lctrl_pressed = FALSE;
-        break;
-      case KEYMAN_RCTRL:
-        keyman->rctrl_pressed = FALSE;
-        break;
-      case KEYMAN_LALT:
-        keyman->lalt_pressed = FALSE;
-        break;
-      case KEYMAN_RALT:
-        keyman->ralt_pressed = FALSE;
-        break;
-      }
+    // REVIEW: why don't we handle these keys?
+    switch (keycode) {
+    case KEYMAN_LCTRL:
+      keyman->lctrl_pressed = isKeyDown;
+      break;
+    case KEYMAN_RCTRL:
+      keyman->rctrl_pressed = isKeyDown;
+      break;
+    case KEYMAN_LALT:
+      keyman->lalt_pressed = isKeyDown;
+      break;
+    case KEYMAN_RALT:
+      keyman->ralt_pressed = isKeyDown;
+      break;
     }
 
-    if (keycode < 0 || keycode > 255)
-    {
-        g_warning("keycode %d out of range", keycode);
-        return FALSE;
+    if (keycode < 0 || keycode > 255) {
+      g_warning("keycode %d out of range", keycode);
+      return FALSE;
     }
 
-    if (keycode_to_vk[keycode] == 0) // key we don't handle
-    {
-        //save if a possible Ctrl or Alt modifier
-        switch(keycode) {
-            case KEYMAN_LCTRL:
-                keyman->lctrl_pressed = TRUE;
-                break;
-            case KEYMAN_RCTRL:
-                keyman->rctrl_pressed = TRUE;
-                break;
-            case KEYMAN_LALT:
-                keyman->lalt_pressed = TRUE;
-                break;
-            case KEYMAN_RALT:
-                keyman->ralt_pressed = TRUE;
-                break;
-            default:
-                break;
-        }
+    if (keycode_to_vk[keycode] == 0) { // key we don't handle
         return FALSE;
     }
 

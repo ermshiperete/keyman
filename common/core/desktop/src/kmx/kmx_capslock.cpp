@@ -61,8 +61,8 @@ void KMX_ProcessEvent::KeyCapsLockPress(KMX_DWORD &modifiers, KMX_BOOL isKeyDown
 
 /**
  * Deal with CapsLock store options on Shift key press. Called by ProcessEvent.
- * May update `modifiers` to add or remove `CAPITALFLAG` according to keyboard
- * requirements. May queue actions to set caps lock state.
+ * May update `modifiers` to remove `CAPITALFLAG` according to keyboard
+ * requirements. May queue actions to reset caps lock state.
  *
  * @param[in,out]  modifiers    The modifier key bitmap
  * @param          isKeyDown    TRUE if this is called on KeyDown event, FALSE if
