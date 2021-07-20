@@ -103,10 +103,13 @@ namespace km {
       return option(scope, key, i->second);
     }
 
-    km_kbp_status mock_processor::process_event(km_kbp_state *state,
-                                                km_kbp_virtual_key vk,
-                                                uint16_t modifier_state,
-                                                uint8_t is_key_down) {
+    km_kbp_status
+    mock_processor::process_event(
+      km_kbp_state *state,
+      km_kbp_virtual_key vk,
+      uint16_t modifier_state,
+      uint8_t is_key_down
+    ) {
       assert(state);
       if (!state)
         return KM_KBP_STATUS_INVALID_ARGUMENT;

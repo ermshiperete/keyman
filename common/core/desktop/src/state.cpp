@@ -27,8 +27,7 @@ void actions::push_persist(option const &&opt) {
   emplace_back(std::move(ai));
 }
 
-void actions::push_capslock(bool turnOn)
-{
+void actions::push_capslock(bool turnOn) {
   assert(empty() || (!empty() && back().type != KM_KBP_IT_END));
   km_kbp_action_item ai = {KM_KBP_IT_CAPSLOCK, {0,}, {0}};
   ai.capsLock           = turnOn;

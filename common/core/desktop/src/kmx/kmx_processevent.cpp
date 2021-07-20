@@ -59,23 +59,26 @@ char VKeyToChar(KMX_UINT modifiers, KMX_UINT vk) {
 }
 
 /*
-* KMX_BOOL ProcessEvent();
-*
-* Parameters: state      A pointer to the state object.
-              vkey       A virtual key to be processed.
-              modifiers  The combinations of modifier keys set at the time vkey was pressed,
-                         bitmask from the km_kbp_modifier_state enum.
-              isKeyDown  TRUE if this is called on KeyDown event, FALSE if called on KeyUp event
-
-* Returns:  TRUE if keystroke should be eaten
-*
-*   Called by:  FilterFunc
-*
-* ProcessEvent organizes the messages and gives them to the appropriate routines to
-* process, and checks the state of Windows for the keyboard handling.
-*/
-KMX_BOOL KMX_ProcessEvent::ProcessEvent(km_kbp_state *state, KMX_UINT vkey, KMX_DWORD modifiers, KMX_BOOL isKeyDown)
-{
+ * Process Events
+ *
+ * ProcessEvent organizes the messages and gives them to the appropriate routines to
+ * process, and checks the state of Windows for the keyboard handling.
+ * Called by FilterFunc.
+ *
+ * @param state      A pointer to the state object.
+ * @param vkey       A virtual key to be processed.
+ * @param modifiers  The combinations of modifier keys set at the time vkey was pressed,
+ *                   bitmask from the km_kbp_modifier_state enum.
+ * @param isKeyDown  TRUE if this is called on KeyDown event, FALSE if called on KeyUp event
+ *
+ * @return           TRUE if keystroke should be eaten
+ */
+KMX_BOOL KMX_ProcessEvent::ProcessEvent(
+  km_kbp_state *state,
+  KMX_UINT vkey,
+  KMX_DWORD modifiers,
+  KMX_BOOL isKeyDown
+) {
   LPKEYBOARD kbd = m_keyboard.Keyboard;
 
   m_kbp_state = state;
@@ -87,22 +90,20 @@ KMX_BOOL KMX_ProcessEvent::ProcessEvent(km_kbp_state *state, KMX_UINT vkey, KMX_
   m_modifiers = modifiers;
   m_state.LoopTimes = 0;
 
-  if (kbd->StartGroup[BEGIN_UNICODE] == (KMX_DWORD)-1)
-  {
+  if (kbd->StartGroup[BEGIN_UNICODE] == (KMX_DWORD)-1) {
     DebugLog("Non-Unicode keyboards are not supported.");
     m_kbp_state = nullptr;
     return FALSE;
   }
 
-  switch (vkey)
-  {
-    case KM_KBP_VKEY_CAPS:
-      KeyCapsLockPress(modifiers, isKeyDown);
-      break;
-    case KM_KBP_VKEY_SHIFT:
-      KeyShiftPress(modifiers, isKeyDown);
-      break;
-    }
+  switch (vkey) {
+  case KM_KBP_VKEY_CAPS:
+    KeyCapsLockPress(modifiers, isKeyDown);
+    break;
+  case KM_KBP_VKEY_SHIFT:
+    KeyShiftPress(modifiers, isKeyDown);
+    break;
+  }
 
   if (!isKeyDown) {
     m_kbp_state = nullptr;

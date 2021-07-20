@@ -9,8 +9,7 @@ km_kbp_status kmx_processor::validate() const {
   return _valid ? KM_KBP_STATUS_OK : KM_KBP_STATUS_INVALID_KEYBOARD;
 }
 
-kmx_processor::kmx_processor(kbp::path p)
-{
+kmx_processor::kmx_processor(kbp::path p) {
   p.replace_extension(".kmx");
   _valid = bool(_kmx.Load(p.c_str()));
 
@@ -33,46 +32,55 @@ kmx_processor::kmx_processor(kbp::path p)
                   std::u16string(vs.begin(), vs.end()), p.parent(), defaults);
 }
 
-char16_t const * kmx_processor::lookup_option(km_kbp_option_scope scope, std::u16string const & key) const
-{
-  char16_t const * pValue = nullptr;
-  switch(scope)
-  {
-    case KM_KBP_OPT_KEYBOARD:
-      pValue = _kmx.GetOptions()->LookUp(key);
-      break;
-    case KM_KBP_OPT_ENVIRONMENT:
-      pValue = _kmx.GetEnvironment()->LookUp(key);
-      break;
-    default:
-      break;
+char16_t const *
+kmx_processor::lookup_option(
+  km_kbp_option_scope scope,
+  std::u16string const &key
+) const {
+  char16_t const *pValue = nullptr;
+  switch (scope) {
+  case KM_KBP_OPT_KEYBOARD:
+    pValue = _kmx.GetOptions()->LookUp(key);
+    break;
+  case KM_KBP_OPT_ENVIRONMENT:
+    pValue = _kmx.GetEnvironment()->LookUp(key);
+    break;
+  default:
+    break;
   }
 
   return pValue ? pValue : nullptr;
 }
 
-option kmx_processor::update_option(km_kbp_option_scope scope, std::u16string const & key, std::u16string const & value)
-{
-  switch(scope) {
-    case KM_KBP_OPT_KEYBOARD:
-      _kmx.GetOptions()->Set(key, value);
-      persisted_store()[key] = value;
-      break;
-    case KM_KBP_OPT_ENVIRONMENT:
-      _kmx.GetEnvironment()->Set(key, value);
-      break;
-    default:
-      return option();
-      break;
+option
+kmx_processor::update_option(
+  km_kbp_option_scope scope,
+  std::u16string const &key,
+  std::u16string const &value
+) {
+  switch (scope) {
+  case KM_KBP_OPT_KEYBOARD:
+    _kmx.GetOptions()->Set(key, value);
+    persisted_store()[key] = value;
+    break;
+  case KM_KBP_OPT_ENVIRONMENT:
+    _kmx.GetEnvironment()->Set(key, value);
+    break;
+  default:
+    return option();
+    break;
   }
 
   return option(scope, key, value);
 }
 
-km_kbp_status kmx_processor::process_event(km_kbp_state *state,
-                                            km_kbp_virtual_key vk,
-                                            uint16_t modifier_state,
-                                            uint8_t is_key_down) {
+km_kbp_status
+kmx_processor::process_event(
+  km_kbp_state *state,
+  km_kbp_virtual_key vk,
+  uint16_t modifier_state,
+  uint8_t is_key_down
+) {
   // Construct a context buffer from the items
 
   std::u16string ctxt;
@@ -83,9 +91,8 @@ km_kbp_status kmx_processor::process_event(km_kbp_state *state,
       if (Uni_IsSMP(c->character)) {
         ctxt += Uni_UTF32ToSurrogate1(c->character);
         ctxt += Uni_UTF32ToSurrogate2(c->character);
-      }
-      else {
-        ctxt += (km_kbp_cp) c->character;
+      } else {
+        ctxt += (km_kbp_cp)c->character;
       }
       break;
     case KM_KBP_CT_MARKER:
@@ -116,7 +123,7 @@ km_kbp_status kmx_processor::process_event(km_kbp_state *state,
     case QIT_VKEYUP:
     case QIT_VSHIFTDOWN:
     case QIT_VSHIFTUP:
-      //TODO: eliminate??
+      // TODO: eliminate??
       break;
     case QIT_CHAR:
       state->context().push_character(a.dwData);
@@ -134,20 +141,24 @@ km_kbp_status kmx_processor::process_event(km_kbp_state *state,
       case BK_DEFAULT:
         // This only happens if we know we have context to delete. Last item must be a character
         assert(!state->context().empty() && state->context().back().type != KM_KBP_IT_MARKER);
-        if (!state->context().empty()) state->context().pop_back();
+        if (!state->context().empty())
+          state->context().pop_back();
         state->actions().push_backspace();
         break;
       case BK_DEADKEY:
         // This only happens if we know we have context to delete. Last item must be a deadkey
         assert(!state->context().empty() && state->context().back().type == KM_KBP_IT_MARKER);
-        if (!state->context().empty()) state->context().pop_back();
+        if (!state->context().empty())
+          state->context().pop_back();
         break;
       case BK_BACKSPACE:
         // User-initiated backspace. We need to delete deadkeys from context, both sides of the character deleted
-        while (!state->context().empty() && state->context().back().type == KM_KBP_IT_MARKER) state->context().pop_back();
+        while (!state->context().empty() && state->context().back().type == KM_KBP_IT_MARKER)
+          state->context().pop_back();
         if (!state->context().empty()) {
           state->context().pop_back();
-          while (!state->context().empty() && state->context().back().type == KM_KBP_IT_MARKER) state->context().pop_back();
+          while (!state->context().empty() && state->context().back().type == KM_KBP_IT_MARKER)
+            state->context().pop_back();
         }
         // Even if context is empty, we send the backspace event, because we may not
         // know the context.
@@ -161,7 +172,7 @@ km_kbp_status kmx_processor::process_event(km_kbp_state *state,
       state->actions().push_invalidate_context();
       break;
     default:
-      //std::cout << "Unexpected item type " << a.ItemType << ", " << a.dwData << std::endl;
+      // std::cout << "Unexpected item type " << a.ItemType << ", " << a.dwData << std::endl;
       assert(false);
     }
   }

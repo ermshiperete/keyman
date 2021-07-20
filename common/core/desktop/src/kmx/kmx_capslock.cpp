@@ -8,6 +8,15 @@
 using namespace km::kbp;
 using namespace kmx;
 
+/**
+ * Set caps lock state.
+ * Called by ProcessEvent.
+ * May update `modifiers` to add or remove `CAPITALFLAG` according to capsLockOn
+ * parameter. May queue actions to set caps lock state.
+ *
+ * @param[in,out] modifiers   The modifier key bitmap
+ * @param         capsLockOn  The desired caps lock state
+ */
 void KMX_ProcessEvent::SetCapsLock(KMX_DWORD &modifiers, KMX_BOOL capsLockOn) {
   KMX_BOOL capsLockCurrentlyOn = IsCapsLockOn(modifiers);
   if (capsLockCurrentlyOn == capsLockOn) {
@@ -33,13 +42,10 @@ void KMX_ProcessEvent::SetCapsLock(KMX_DWORD &modifiers, KMX_BOOL capsLockOn) {
  * @param[in,out]  modifiers    The modifier key bitmap
  */
 void KMX_ProcessEvent::ResetCapsLock(KMX_DWORD &modifiers) {
-  DebugLog("ResetCapsLock: enter");
-
   if (m_keyboard.Keyboard->dwFlags & KF_CAPSALWAYSOFF) {
     DebugLog("ResetCapsLock: caps lock should be always off");
     SetCapsLock(modifiers, FALSE);
   }
-  DebugLog("ResetCapsLock: exit");
 }
 
 /**
