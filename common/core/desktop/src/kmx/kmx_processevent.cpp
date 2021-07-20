@@ -20,11 +20,6 @@ KMX_BOOL km::kbp::kmx::g_silent = FALSE;
 */
 
 KMX_ProcessEvent::KMX_ProcessEvent() : m_actions(&m_context), m_options(&m_keyboard) {
-  char* debug = getenv("KEYMAN_DEBUG");
-  if (debug) {
-    g_debug_ToConsole = strcmp(debug, "TRUE") == 0 || strcmp(debug, "1") == 0;
-  }
-
   m_indexStack = new KMX_WORD[GLOBAL_ContextStackSize];
   m_miniContext = new KMX_WCHAR[GLOBAL_ContextStackSize];
   m_miniContextIfLen = 0;
