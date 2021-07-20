@@ -60,6 +60,7 @@ struct _IBusKeymanEngine {
     gboolean         rctrl_pressed;
     gboolean         lalt_pressed;
     gboolean         ralt_pressed;
+    gboolean         caps_lock_on;
     gboolean         emitting_keystroke;
     IBusLookupTable *table;
     IBusProperty    *status_prop;
@@ -251,20 +252,21 @@ ibus_keyman_engine_init (IBusKeymanEngine *keyman)
                                            0,
                                            NULL);
     g_object_ref_sink(keyman->status_prop);
-    keyman->prop_list = ibus_prop_list_new ();
+    keyman->prop_list = ibus_prop_list_new();
     g_object_ref_sink(keyman->prop_list);
-    ibus_prop_list_append (keyman->prop_list,  keyman->status_prop);
+    ibus_prop_list_append(keyman->prop_list, keyman->status_prop);
 
-    keyman->table = ibus_lookup_table_new (9, 0, TRUE, TRUE);
+    keyman->table = ibus_lookup_table_new(9, 0, TRUE, TRUE);
     g_object_ref_sink(keyman->table);
     keyman->state = NULL;
 }
 
 static GObject*
-ibus_keyman_engine_constructor (GType                   type,
-                              guint                   n_construct_params,
-                              GObjectConstructParam  *construct_params)
-{
+ibus_keyman_engine_constructor(
+  GType type,
+  guint n_construct_params,
+  GObjectConstructParam *construct_params
+) {
     IBusKeymanEngine *keyman;
     IBusEngine *engine;
     IBusText *text;
@@ -291,11 +293,12 @@ ibus_keyman_engine_constructor (GType                   type,
     keyman->lctrl_pressed = FALSE;
     keyman->ralt_pressed = FALSE;
     keyman->rctrl_pressed = FALSE;
+    keyman->caps_lock_on = FALSE;
     keyman->emitting_keystroke = FALSE;
     gchar **split_name = g_strsplit(engine_name, ":", 2);
     if (split_name[0] == NULL)
     {
-        IBUS_OBJECT_CLASS (parent_class)->destroy ((IBusObject *)keyman);
+        IBUS_OBJECT_CLASS (parent_class)->destroy((IBusObject *)keyman);
         return NULL;
     }
     else if (split_name[1] == NULL)
@@ -744,7 +747,12 @@ process_capslock_action(
   IBusKeymanEngine *keyman,
   const km_kbp_action_item *action_item
 ) {
-  g_message("%s caps-lock", action_item->capsLock ? "Enable" : "Disable");
+  if (keyman->caps_lock_on == action_item->capsLock) {
+    g_message("**** caps-lock already in correct state");
+    return TRUE;
+  }
+
+  g_message("**** %s caps-lock", action_item->capsLock ? "Enable" : "Disable");
 
   ibus_engine_forward_key_event((IBusEngine *)keyman, KEYMAN_CAPS_KEYSYM, KEYMAN_CAPS, IBUS_MOD2_MASK);
   ibus_engine_forward_key_event((IBusEngine *)keyman, KEYMAN_CAPS_KEYSYM, KEYMAN_CAPS, IBUS_MOD2_MASK | IBUS_RELEASE_MASK);
@@ -832,7 +840,9 @@ ibus_keyman_engine_process_key_event(
 
   g_message("DAR: ibus_keyman_engine_process_key_event - keyval=%02i, keycode=%02i, state=%02x", keyval, keycode, state);
 
-  gboolean isKeyDown = !!(state & IBUS_RELEASE_MASK);
+  gboolean isKeyDown = !(state & IBUS_RELEASE_MASK);
+
+  g_message("**** state & IBUS_RELEASE_MASK=%02x, isKeyDown=%02x", state & IBUS_RELEASE_MASK, isKeyDown);
 
   // REVIEW: why don't we handle these keys?
   switch (keycode) {
@@ -890,6 +900,9 @@ ibus_keyman_engine_process_key_event(
   }
   if (state & IBUS_LOCK_MASK) {
     km_mod_state |= KM_KBP_MODIFIER_CAPS;
+    keyman->caps_lock_on = TRUE;
+  } else {
+    keyman->caps_lock_on = FALSE;
   }
   g_message("before process key event");
   km_kbp_context *context = km_kbp_state_context(keyman->state);
