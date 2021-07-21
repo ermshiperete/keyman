@@ -99,6 +99,8 @@ KMX_BOOL KMX_ProcessEvent::ProcessEvent(
   switch (vkey) {
   case KM_KBP_VKEY_CAPS:
     KeyCapsLockPress(modifiers, isKeyDown);
+    if (m_keyboard.Keyboard->dwFlags & KF_CAPSALWAYSOFF)
+      return TRUE;
     break;
   case KM_KBP_VKEY_SHIFT:
     KeyShiftPress(modifiers, isKeyDown);

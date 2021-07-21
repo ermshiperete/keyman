@@ -677,9 +677,8 @@ process_backspace_action(
     g_message("no char actions, just single back");
     return FALSE;
   } else {
-    g_message(
-        "DAR: ibus_keyman_engine_process_key_event - client_capabilities=%x, %x", engine->client_capabilities,
-        IBUS_CAP_SURROUNDING_TEXT);
+    g_message("DAR: process_backspace_action - client_capabilities=%x, %x",
+      engine->client_capabilities, IBUS_CAP_SURROUNDING_TEXT);
 
     if ((engine->client_capabilities & IBUS_CAP_SURROUNDING_TEXT) != 0) {
       g_message("deleting surrounding text 1 char");
@@ -754,8 +753,8 @@ process_capslock_action(
 
   g_message("**** %s caps-lock", action_item->capsLock ? "Enable" : "Disable");
 
-  ibus_engine_forward_key_event((IBusEngine *)keyman, KEYMAN_CAPS_KEYSYM, KEYMAN_CAPS, IBUS_MOD2_MASK);
-  ibus_engine_forward_key_event((IBusEngine *)keyman, KEYMAN_CAPS_KEYSYM, KEYMAN_CAPS, IBUS_MOD2_MASK | IBUS_RELEASE_MASK);
+  ibus_engine_forward_key_event((IBusEngine *)keyman, KEYMAN_CAPS_KEYSYM, KEYMAN_CAPS, keyman->caps_lock_on ? IBUS_LOCK_MASK : 0);
+  //ibus_engine_forward_key_event((IBusEngine *)keyman, KEYMAN_CAPS_KEYSYM, KEYMAN_CAPS, IBUS_RELEASE_MASK);
 
   return TRUE;
 }
@@ -838,11 +837,12 @@ ibus_keyman_engine_process_key_event(
 ) {
   IBusKeymanEngine *keyman = (IBusKeymanEngine *)engine;
 
-  g_message("DAR: ibus_keyman_engine_process_key_event - keyval=%02i, keycode=%02i, state=%02x", keyval, keycode, state);
-
   gboolean isKeyDown = !(state & IBUS_RELEASE_MASK);
 
-  g_message("**** state & IBUS_RELEASE_MASK=%02x, isKeyDown=%02x", state & IBUS_RELEASE_MASK, isKeyDown);
+  g_message("-----------------------------------------------------------------------------------------------------------------");
+  g_message(
+      "DAR: ibus_keyman_engine_process_key_event - keyval=0x%02x keycode=0x%02x, state=0x%02x, isKeyDown=%d", keyval, keycode,
+      state, isKeyDown);
 
   // REVIEW: why don't we handle these keys?
   switch (keycode) {
@@ -907,7 +907,7 @@ ibus_keyman_engine_process_key_event(
   g_message("before process key event");
   km_kbp_context *context = km_kbp_state_context(keyman->state);
   g_free(get_current_context_text(context));
-  g_message("DAR: ibus_keyman_engine_process_key_event - km_mod_state=%x", km_mod_state);
+  g_message("DAR: ibus_keyman_engine_process_key_event - km_mod_state=0x%x", km_mod_state);
   km_kbp_status event_status = km_kbp_process_event(keyman->state, keycode_to_vk[keycode], km_mod_state, isKeyDown);
   context                    = km_kbp_state_context(keyman->state);
   g_message("after process key event");
