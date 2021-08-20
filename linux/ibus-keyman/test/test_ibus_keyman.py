@@ -21,94 +21,96 @@ from gi.repository import Gtk, Gdk, Gio
 gi.require_version('IBus', '1.0')
 from gi.repository import IBus
 
-from change_keyboard import change_keyboard, bus_has_engine, get_current_engine
+from keyman_config.gnome_keyboards_util import GnomeKeyboardsUtil, gnome_change_to_keyboard, is_gnome_shell
+from keyman_config.ibus_util import change_to_keyboard, get_ibus_bus, install_to_ibus, restart_ibus, uninstall_from_ibus
+
 
 class TestView(Gtk.Window):
 
     def __init__(self, test_name):
         Gtk.Window.__init__(self, title=test_name)
         self.known_modifiers = {
-            "LCTRL" : 37,
-            "RCTRL" : 105,
-            "LALT" : 64,
-            "RALT" : 108,
-            "SHIFT" : 50,
-            "ALT" : 64,
-            "CTRL" : 37 }
+            "LCTRL": 37,
+            "RCTRL": 105,
+            "LALT": 64,
+            "RALT": 108,
+            "SHIFT": 50,
+            "ALT": 64,
+            "CTRL": 37}
 
         self.known_keys = {
-            "K_A" : 38,
-            "K_B" : 56,
-            "K_C" : 54,
-            "K_D" : 40,
-            "K_E" : 26,
-            "K_F" : 41,
-            "K_G" : 42,
-            "K_H" : 43,
-            "K_I" : 31,
-            "K_J" : 44,
-            "K_K" : 45,
-            "K_L" : 46,
-            "K_M" : 58,
-            "K_N" : 57,
-            "K_O" : 32,
-            "K_P" : 33,
-            "K_Q" : 24,
-            "K_R" : 27,
-            "K_S" : 39,
-            "K_T" : 28,
-            "K_U" : 30,
-            "K_V" : 55,
-            "K_W" : 25,
-            "K_X" : 53,
-            "K_Y" : 29,
-            "K_Z" : 52,
-            "K_COLON"   : 47, #      // &HBA
-            "K_EQUAL"   : 21, #      // &HBB
-            "K_COMMA"   : 59, #      // &HBC
-            "K_HYPHEN"  : 20, #   // &HBD
-            "K_PERIOD"  : 60, #   // &HBE
-            "K_SLASH"   : 61, #      // &HBF
-            "K_BKQUOTE" : 49, #    // &HC0
-            "K_LBRKT"   : 34, #      // &HDB
-            "K_BKSLASH" : 51, #    // &HDC
-            "K_RBRKT"   : 35, #      // &HDD
-            "K_QUOTE"   : 48, #      // &HDE
-            "K_oE2"     : 94, #      // &HE2
-            "K_0" : 19,
-            "K_1" : 10,
-            "K_2" : 11,
-            "K_3" : 12,
-            "K_4" : 13,
-            "K_5" : 14,
-            "K_6" : 15,
-            "K_7" : 16,
-            "K_8" : 17,
-            "K_9" : 18,
-            "K_F1" : 67,
-            "K_F2" : 68,
-            "K_F3" : 69,
-            "K_F4" : 70,
-            "K_F5" : 71,
-            "K_F6" : 72,
-            "K_F7" : 73,
-            "K_F8" : 74,
-            "K_F9" : 75,
-            "K_F10" : 76,
-            "K_F11" : 95,
-            "K_F12" : 96,
-            "K_CAPS" : 66,
-            "K_ENTER" : 36,
-            "K_ESC" : 9,
-            "K_SPACE" : 65,
-            "K_TAB" : 23,
-            "K_UP" : 111,
-            "K_DOWN" : 116,
-            "K_LEFT" : 113,
-            "K_RIGHT" : 114,
-            "K_HOME" : 110,
-            "K_END" : 115,
-            "K_BKSP" : 22 }
+            "K_A": 38,
+            "K_B": 56,
+            "K_C": 54,
+            "K_D": 40,
+            "K_E": 26,
+            "K_F": 41,
+            "K_G": 42,
+            "K_H": 43,
+            "K_I": 31,
+            "K_J": 44,
+            "K_K": 45,
+            "K_L": 46,
+            "K_M": 58,
+            "K_N": 57,
+            "K_O": 32,
+            "K_P": 33,
+            "K_Q": 24,
+            "K_R": 27,
+            "K_S": 39,
+            "K_T": 28,
+            "K_U": 30,
+            "K_V": 55,
+            "K_W": 25,
+            "K_X": 53,
+            "K_Y": 29,
+            "K_Z": 52,
+            "K_COLON": 47,  # // &HBA
+            "K_EQUAL": 21,  # // &HBB
+            "K_COMMA": 59,  # // &HBC
+            "K_HYPHEN": 20,  # // &HBD
+            "K_PERIOD": 60,  # // &HBE
+            "K_SLASH": 61,  # // &HBF
+            "K_BKQUOTE": 49,  # // &HC0
+            "K_LBRKT": 34,  # // &HDB
+            "K_BKSLASH": 51,  # // &HDC
+            "K_RBRKT": 35,  # // &HDD
+            "K_QUOTE": 48,  # // &HDE
+            "K_oE2": 94,  # // &HE2
+            "K_0": 19,
+            "K_1": 10,
+            "K_2": 11,
+            "K_3": 12,
+            "K_4": 13,
+            "K_5": 14,
+            "K_6": 15,
+            "K_7": 16,
+            "K_8": 17,
+            "K_9": 18,
+            "K_F1": 67,
+            "K_F2": 68,
+            "K_F3": 69,
+            "K_F4": 70,
+            "K_F5": 71,
+            "K_F6": 72,
+            "K_F7": 73,
+            "K_F8": 74,
+            "K_F9": 75,
+            "K_F10": 76,
+            "K_F11": 95,
+            "K_F12": 96,
+            "K_CAPS": 66,
+            "K_ENTER": 36,
+            "K_ESC": 9,
+            "K_SPACE": 65,
+            "K_TAB": 23,
+            "K_UP": 111,
+            "K_DOWN": 116,
+            "K_LEFT": 113,
+            "K_RIGHT": 114,
+            "K_HOME": 110,
+            "K_END": 115,
+            "K_BKSP": 22}
         self.keys = self.context = self.expected = ""
         self.haspressedkeys = False
         self.test_name = test_name
@@ -120,7 +122,7 @@ class TestView(Gtk.Window):
 
         self.load_source(self.kmn_path)
         self.change_to_keyboard(self.keyboard_id, self.kmx_path)
-        with open(self.test_name+".in", "wt") as f:
+        with open(self.test_name + ".in", "wt") as f:
             f.write(self.expected)
 
         self.grid = Gtk.Grid()
@@ -173,27 +175,41 @@ class TestView(Gtk.Window):
             t = Timer(1.0, self.do_destroy)
             t.start()
 
+    def install_to_gnome(self, bus, input_source):
+        gnomeKeyboardsUtil = GnomeKeyboardsUtil()
+        sources = gnomeKeyboardsUtil.read_input_sources()
+
+        if input_source not in sources:
+            sources.append(input_source)
+            gnomeKeyboardsUtil.write_input_sources(sources)
+            restart_ibus(bus)
+            bus.destroy()
+            bus = IBus.Bus()
+
     def change_to_keyboard(self, keyboard_id, kmx_path):
         logging.debug(keyboard_id)
         try:
             logging.debug("getting bus")
-            bus = IBus.Bus()
+            bus = get_ibus_bus()
             logging.debug("getting default keyboard")
-            self.default_keyboard = get_current_engine(bus)
+            self.default_keyboard = None  # get_current_engine(bus)
             logging.debug(self.default_keyboard)
-            logging.debug("installing to ibus")
-            ibus_settings = Gio.Settings.new("org.freedesktop.ibus.general")
-            preload_engines = ibus_settings.get_strv("preload-engines")
-            logging.debug(preload_engines)
-            # if bad_keyboard in preload_engines:
-            #     preload_engines.remove(bad_keyboard)
-            if keyboard_id not in preload_engines:
-                preload_engines.append(keyboard_id)
-            logging.debug(preload_engines)
-            ibus_settings.set_strv("preload-engines", preload_engines)
-            bus.preload_engines(preload_engines)
-            logging.info("changing keyboard to %s", keyboard_id)
-            change_keyboard(bus, keyboard_id)
+            if is_gnome_shell():
+                logging.debug("installing to gnome")
+                input_source = ('ibus', keyboard_id)
+                self.install_to_gnome(bus, input_source)
+                gnomeKeyboardsUtil = GnomeKeyboardsUtil()
+                sources = gnomeKeyboardsUtil.read_input_sources()
+                for index in range(len(sources)):
+                    if sources[index] == input_source:
+                        logging.info("changing keyboard to %s", keyboard_id)
+                        gnome_change_to_keyboard(bus, index)
+                        break
+            else:
+                logging.debug("installing to ibus")
+                install_to_ibus(bus, keyboard_id)
+                logging.info("changing keyboard to %s", keyboard_id)
+                change_to_keyboard(bus, keyboard_id)
         except Exception as e:
             logging.debug("Failed to set up keyboard")
             logging.debug(e)
@@ -202,20 +218,20 @@ class TestView(Gtk.Window):
         try:
             logging.debug("getting bus")
             bus = IBus.Bus()
-            logging.debug("setting keyboard back to default: %s", self.default_keyboard)
-            change_keyboard(bus, self.default_keyboard)
-            ibus_settings = Gio.Settings.new("org.freedesktop.ibus.general")
-            preload_engines = ibus_settings.get_strv("preload-engines")
-            logging.debug(preload_engines)
-            if keyboard_id in preload_engines:
-                preload_engines.remove(keyboard_id)
-            logging.debug(preload_engines)
-            ibus_settings.set_strv("preload-engines", preload_engines)
-            bus.preload_engines(preload_engines)
+            if is_gnome_shell():
+                gnomeKeyboardsUtil = GnomeKeyboardsUtil()
+                sources = gnomeKeyboardsUtil.read_input_sources()
+                input_source = ('ibus', keyboard_id)
+                if input_source in sources:
+                    sources.remove(input_source)
+                    gnomeKeyboardsUtil.write_input_sources(sources)
+            else:
+                logging.debug("setting keyboard back to default: %s", self.default_keyboard)
+                change_to_keyboard(bus, self.default_keyboard)
+                uninstall_from_ibus(bus, keyboard_id)
         except Exception as e:
             logging.debug("Failed to reset keyboard")
             logging.debug(e)
-
 
     def load_source(self, kmn_path):
         if os.path.exists(kmn_path):
@@ -225,7 +241,7 @@ class TestView(Gtk.Window):
                         self.keys = line[8:].rstrip()
                     if line.startswith("c expected: "):
                         expected = line[12:].rstrip()
-                        if expected == "\\b": # beep test is sound not text
+                        if expected == "\\b":  # beep test is sound not text
                             self.expected = ""
                         else:
                             self.expected = expected.encode("utf-8").decode('unicode-escape')
@@ -245,7 +261,7 @@ class TestView(Gtk.Window):
         scrolledwindow.add(self.textview)
 
     def do_destroy(self):
-        with open(self.test_name+".out", "wt") as f:
+        with open(self.test_name + ".out", "wt") as f:
             start = self.textbuffer.get_start_iter()
             end = self.textbuffer.get_end_iter()
             text = self.textbuffer.get_text(start, end, True)
@@ -262,9 +278,9 @@ class TestView(Gtk.Window):
 # input test_name
 # test dir ~/.local/share/keyman/test_kmx
 # read test_name.kmn to get e.g.
-#c keys: [K_1][K_BKSP][K_2][K_BKSP][K_3][K_BKSP][K_4][K_BKSP][K_5][K_BKSP][K_6][K_BKSP]
-#c expected: aa
-#c context: 
+# c keys: [K_1][K_BKSP][K_2][K_BKSP][K_3][K_BKSP][K_4][K_BKSP][K_5][K_BKSP][K_6][K_BKSP]
+# c expected: aa
+# c context:
 
 # keyboard is und:~/.local/share/keyman/test_kmx/test_name.kmx
 # can the current ibus keyboard be changed from a python program?
@@ -284,13 +300,14 @@ def main(argv):
         logging.error("Empty test name: %s", sys.argv)
         logging.error("test_ibus_keyman.py <test_name>")
         sys.exit(2)
-    logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(message)s')
-    # logging.basicConfig(level=logging.DEBUG, format='%(levelname)s:%(message)s')
+    # logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(message)s')
+    logging.basicConfig(level=logging.DEBUG, format='%(levelname)s:%(message)s')
     w = TestView(sys.argv[1])
     w.connect("destroy", w.on_destroy)
     w.resize(576, 324)
     w.show_all()
     Gtk.main()
+
 
 if __name__ == "__main__":
     main(sys.argv[1:])

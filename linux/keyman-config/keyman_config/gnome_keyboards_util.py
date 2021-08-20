@@ -4,6 +4,7 @@ import os
 from gi.repository import Gio
 
 from gi.overrides.GLib import Variant
+import subprocess
 
 
 class GnomeKeyboardsUtil():
@@ -79,3 +80,11 @@ def get_ibus_keyboard_id(keyboard, packageDir, language=None, ignore_language=Fa
         logging.debug(keyboard["languages"][0])
         return "%s:%s" % (keyboard["languages"][0]['id'], kmx_file)
     return kmx_file
+
+
+def gnome_change_to_keyboard(bus, keyboard_index):
+    # https: //askubuntu.com/a/1039964
+    subprocess.run(['/usr/bin/gdbus', 'call', '--session', '--dest', 'org.gnome.Shell',
+                   '--object-path', '/org/gnome/Shell', '--method', 'org.gnome.Shell.Eval',
+                    '"imports.ui.status.keyboard.getInputSourceManager().inputSources[%d].activate()"'
+                    % keyboard_index])

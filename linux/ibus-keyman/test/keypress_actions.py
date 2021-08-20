@@ -11,7 +11,7 @@ http://ldtp.freedesktop.org
 
 This file may be distributed and/or modified under the terms of the GNU Lesser General
 Public License version 2 as published by the Free Software Foundation. This file
-is distributed without any warranty; without even the implied warranty of 
+is distributed without any warranty; without even the implied warranty of
 merchantability or fitness for a particular purpose.
 
 See 'COPYING' in the source distribution for more information.
@@ -56,6 +56,7 @@ _non_print_key_val = {"escape" : 9, "esc" : 9, "backspace" : 22,
                       "F9" : 75, "F10" : 76, "F11" : 95, "F12" : 96,
                       "ctrlr" : 105, "prtscrn" : 107, "ctrll" : 37}
 
+
 def _get_keyboard_keycodes():
   result = subprocess.run('xmodmap -pke', stdout = subprocess.PIPE,
                             stderr = subprocess.PIPE,
@@ -71,7 +72,9 @@ def _get_keyboard_keycodes():
         key = re.split(" ", split[1], 3)[1].lower()
         _non_print_key_val[key] = keycode
 
+
 _get_keyboard_keycodes()
+
 
 class KeyCombo:
   def __init__(self):
@@ -79,6 +82,7 @@ class KeyCombo:
     self.capslck = False
     self.non_print_key = False
     self.value = None
+
 
 class KeyboardOp:
   def __init__(self):
@@ -189,7 +193,7 @@ class KeyboardOp:
       else:
         token = input_str[index]
         index += 1
-  
+
       key_val = self._get_key_value(token)
       if key_val.value == self._undefined_key:
         # Invalid key
@@ -203,9 +207,9 @@ class KeyPressAction(AtomicAction):
   """
   def __init__(self, key_code=None, key_name=None, delta_time=0):
     """
-    Initialize L{KeyPressAction}. Could use either a hardware keycode, 
+    Initialize L{KeyPressAction}. Could use either a hardware keycode,
     a key name, or both.
-    
+
     @param delta_time: Time to wait before performing this step.
     @type delta_time: integer
     @param key_code: Hardware keycode.
@@ -230,7 +234,7 @@ class KeyPressAction(AtomicAction):
   def _keyPress(self, key_code):
     """
     Perform actual key press.
-    
+
     @param key_code: Hardware key code.
     @type key_code: integer
     """
@@ -251,9 +255,9 @@ class KeyReleaseAction(AtomicAction):
   """
   def __init__(self, key_code=None, key_name=None, delta_time=0):
     """
-    Initialize L{KeyReleaseAction}. Could use either a hardware keycode, 
+    Initialize L{KeyReleaseAction}. Could use either a hardware keycode,
     a key name, or both.
-    
+
     @param delta_time: Time to wait before performing this step.
     @type delta_time: integer
     @param key_code: Hardware keycode.
@@ -278,7 +282,7 @@ class KeyReleaseAction(AtomicAction):
   def _keyRelease(self, key_code):
     """
     Perform actual key release.
-    
+
     @param key_code: Hardware key code.
     @type key_code: integer
     """
@@ -310,10 +314,10 @@ class KeyComboAction(AtomicAction):
   @ivar _key_combo: Name of key combination or single key press-release.
   @type _key_combo: string
   """
-  def __init__(self, key_combo, delta_time=0):    
+  def __init__(self, key_combo, delta_time=0):
     """
     Initialize L{KeyComboAction}.
-    
+
     @param key_combo: Name of key combination or single key press-release.
     @type key_combo: string
     @param delta_time: Time to wait before performing step.
@@ -336,7 +340,7 @@ class KeyComboAction(AtomicAction):
   def _doCombo(self):
     """
     Perform combo operation.
-    
+
     @param key_code: Key code to press.
     @type key_code: integer
     @param modifiers: Modifier mask to press with.
@@ -376,7 +380,7 @@ class KeyComboAction(AtomicAction):
             break
           tmp_key_val = self._key_combo[index]
           # EX: <alt><tab> - Here release both alt and tab
-          # <alt>m - 
+          # <alt>m -
           if tmp_key_val.non_print_key == False:
             break
           # Release all non_print_key
@@ -399,7 +403,7 @@ class KeyComboAction(AtomicAction):
   def _keyPress(self, hw_code):
     """
     Press modifier key.
-    
+
     @param hw_code: Hardware code for key.
     @type hw_code: integer
     """
@@ -409,7 +413,7 @@ class KeyComboAction(AtomicAction):
   def _keyRelease(self, hw_code):
     """
     Release modifier key.
-    
+
     @param hw_code: Hardware code for key.
     @type hw_code: integer
     """
@@ -419,11 +423,11 @@ class KeyComboAction(AtomicAction):
   def _keyPressRelease(self, keyval):
     """
     Press and release non-modifier key.
-    
+
     @param key_code: Key code.
     @type key_code: integer
     """
-    pyatspi.Registry.generateKeyboardEvent(keyval, None, 
+    pyatspi.Registry.generateKeyboardEvent(keyval, None,
                                            pyatspi.KEY_PRESSRELEASE)
     return False
 
