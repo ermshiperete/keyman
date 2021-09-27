@@ -161,13 +161,13 @@ static void
 ibus_keyman_engine_class_init (IBusKeymanEngineClass *klass)
 {
     GObjectClass *object_class = G_OBJECT_CLASS (klass);
-	IBusObjectClass *ibus_object_class = IBUS_OBJECT_CLASS (klass);
-	IBusEngineClass *engine_class = IBUS_ENGINE_CLASS (klass);
+    IBusObjectClass *ibus_object_class = IBUS_OBJECT_CLASS (klass);
+    IBusEngineClass *engine_class = IBUS_ENGINE_CLASS (klass);
 
-	parent_class = (IBusEngineClass *) g_type_class_peek_parent (klass);
+    parent_class = (IBusEngineClass *) g_type_class_peek_parent (klass);
 
     object_class->constructor = ibus_keyman_engine_constructor;
-	ibus_object_class->destroy = (IBusObjectDestroyFunc) ibus_keyman_engine_destroy;
+    ibus_object_class->destroy = (IBusObjectDestroyFunc) ibus_keyman_engine_destroy;
 
     engine_class->process_key_event = ibus_keyman_engine_process_key_event;
 
