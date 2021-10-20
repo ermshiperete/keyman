@@ -72,6 +72,12 @@ void     ibus_im_context_show_preedit
                                   (IBusIMContext *context);
 void     ibus_im_context_hide_preedit
                                   (IBusIMContext *context);
+
+void ibus_im_test_set_thread_loop(IBusIMContext *context, GMainLoop *loop);
+
+void ibus_im_test_set_text(IBusIMContext *context, const gchar *text);
+const gchar *ibus_im_test_get_text(IBusIMContext *context);
+void ibus_im_test_clear_text(IBusIMContext *context);
 G_END_DECLS
 #endif
 
