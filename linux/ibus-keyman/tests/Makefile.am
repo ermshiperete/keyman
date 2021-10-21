@@ -21,6 +21,7 @@
 AM_CFLAGS = \
   @IBUS_CFLAGS@ \
   @GTK_CFLAGS@ \
+  @GIO_CFLAGS@ \
   @JSON_GLIB_CFLAGS@ \
   @X11_CFLAGS@ \
   @KEYMAN_PROC_CFLAGS@ \
@@ -30,6 +31,7 @@ AM_CFLAGS = \
 AM_LDFLAGS = \
   @IBUS_LIBS@ \
   @GTK_LIBS@ \
+  @GIO_LIBS@ \
   @X11_LIBS@ \
   @JSON_GLIB_LIBS@ \
   @KEYMAN_PROC_LIBS@ \
@@ -40,14 +42,27 @@ libexec_PROGRAMS = ibus-keyman-tests
 ibus_keyman_tests_SOURCES = \
   ibusimcontext.c \
   ibusimcontext.h \
-  testfixture.c \
+  keyboard_installer.cpp \
+  keyboard_installer.hpp \
   testmodule.c \
   testmodule.h \
+  testfixture.cpp \
   $(NULL)
 
 ibus_keyman_tests_CFLAGS = \
   @IBUS_CFLAGS@ \
   @GTK_CFLAGS@ \
+  @GIO_CFLAGS@ \
+  @X11_CFLAGS@ \
+  @JSON_GLIB_CFLAGS@ \
+  @KEYMAN_PROC_CFLAGS@ \
+  -DPKGDATADIR=\"$(pkgdatadir)\" \
+  $(NULL)
+
+ibus_keyman_tests_CPPFLAGS = \
+  @IBUS_CFLAGS@ \
+  @GTK_CFLAGS@ \
+  @GIO_CFLAGS@ \
   @X11_CFLAGS@ \
   @JSON_GLIB_CFLAGS@ \
   @KEYMAN_PROC_CFLAGS@ \
@@ -56,6 +71,7 @@ ibus_keyman_tests_CFLAGS = \
 
 ibus_keyman_tests_LDFLAGS = \
   @GTK_LIBS@ \
+  @GIO_LIBS@ \
   @IBUS_LIBS@ \
   @X11_LIBS@ \
   @JSON_GLIB_LIBS@ \

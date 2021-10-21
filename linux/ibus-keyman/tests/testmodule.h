@@ -1,6 +1,8 @@
 #ifndef __TEST_MODULE_H_
 #define __TEST_MODULE_H_
 
+G_BEGIN_DECLS
+
 typedef struct _TestModule TestModule;
 typedef struct _TestModuleClass TestModuleClass;
 
@@ -25,5 +27,7 @@ struct _TestModuleClass {
 static GType test_module_get_type(void);
 GTypeModule* test_module_new(TestModuleRegisterFunc register_func);
 void test_module_unuse(GTypeModule* test_module);
+
+G_END_DECLS
 
 #endif

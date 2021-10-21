@@ -68,6 +68,11 @@ PKG_CHECK_MODULES(X11, [
 #    atspi-2 >= 2.0
 #])
 
+# check GIO
+PKG_CHECK_MODULES(GIO, [
+  glibmm-2.4 >= 2.56,
+  giomm-2.4 >= 2.56
+])
 
 # check Json glib
 PKG_CHECK_MODULES(JSON_GLIB, [
