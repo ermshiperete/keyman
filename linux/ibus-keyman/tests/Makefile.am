@@ -42,8 +42,8 @@ libexec_PROGRAMS = ibus-keyman-tests
 ibus_keyman_tests_SOURCES = \
   ibusimcontext.c \
   ibusimcontext.h \
-  keyboard_installer.cpp \
-  keyboard_installer.hpp \
+  testenvironment.cpp \
+  testenvironment.hpp \
   testmodule.c \
   testmodule.h \
   testfixture.cpp \

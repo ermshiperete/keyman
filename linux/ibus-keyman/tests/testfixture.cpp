@@ -4,7 +4,7 @@
 #include <ibus.h>
 #include <linux/input-event-codes.h>
 #include "testmodule.h"
-#include "keyboard_installer.hpp"
+#include "testenvironment.hpp"
 
 typedef struct {
   IBusBus *bus;
@@ -182,8 +182,8 @@ main(int argc, char *argv[]) {
   gtk_init(&argc, &argv);
   g_test_init(&argc, &argv, NULL);
 
-  KeyboardInstaller installer = KeyboardInstaller();
-  installer.Install(directory, nTests, tests);
+  auto testEnvironment = TestEnvironment(argv[0]);
+  testEnvironment.Setup(directory, nTests, tests);
 
   g_test_add(
       "/send-key", IBusKeymanTestsFixture, NULL, ibus_keyman_tests_fixture_set_up, test_simple,
@@ -193,7 +193,6 @@ main(int argc, char *argv[]) {
 
   int retVal = g_test_run();
 
-  installer.Restore();
   test_module_unuse(module);
   return retVal;
 }

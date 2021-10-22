@@ -1,5 +1,5 @@
-#ifndef __TEST_MODULE_H_
-#define __TEST_MODULE_H_
+#ifndef __TESTMODULE__
+#define __TESTMODULE__
 
 G_BEGIN_DECLS
 
@@ -30,4 +30,4 @@ void test_module_unuse(GTypeModule* test_module);
 
 G_END_DECLS
 
-#endif
+#endif /* __TESTMODULE__ */
