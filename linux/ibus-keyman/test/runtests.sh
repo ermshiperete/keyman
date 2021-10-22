@@ -59,7 +59,7 @@ tests=(
 #for test in ${tests}; do echo "$test"; done
 
 if [ ! -d ~/.local/share/keyman/test_kmx ]; then
-  ln -sf $(pwd)/../../../common/core/desktop/tests/unit/kmx ~/.local/share/keyman/test_kmx
+  ln -sf $(pwd)/../../../common/core/desktop/build/arch/debug/tests/unit/kmx ~/.local/share/keyman/test_kmx
 fi
 
 model=`setxkbmap -query|grep model|cut -d ':' -f 2|tr -d ' '`
