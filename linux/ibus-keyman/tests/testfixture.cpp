@@ -1,21 +1,20 @@
-#include "ibusimcontext.h"
 #include <glib-object.h>
 #include <glib.h>
 #include <ibus.h>
 #include <iostream>
 #include <linux/input-event-codes.h>
-#include "testmodule.h"
+#include "ibusimcontext.h"
 #include "testenvironment.hpp"
+#include "testmodule.h"
 
 typedef struct {
   IBusBus *bus;
-  IBusEngineDesc *previousEngine;
   GtkIMContext *context;
   IBusIMContext *ibuscontext;
 } IBusKeymanTestsFixture;
 
-static gboolean loaded   = FALSE;
-static GdkWindow *window = NULL;
+static gboolean loaded        = FALSE;
+static GdkWindow *window      = NULL;
 static GMainLoop *thread_loop = NULL;
 static GTypeModule *module    = NULL;
 
@@ -52,22 +51,16 @@ ibus_keyman_tests_fixture_set_up(IBusKeymanTestsFixture *fixture, gconstpointer 
     loaded = TRUE;
   }
 
-  fixture->bus                = ibus_bus_new();
-  GDBusConnection *connection = ibus_bus_get_connection(fixture->bus);
-
-  fixture->previousEngine = ibus_bus_get_global_engine(fixture->bus);
-  if (fixture->previousEngine)
-    g_object_ref_sink(fixture->previousEngine);
+  fixture->bus = ibus_bus_new();
 }
 
 static void
 ibus_keyman_tests_fixture_tear_down(IBusKeymanTestsFixture *fixture, gconstpointer user_data) {
-  g_main_loop_unref(thread_loop);
-  thread_loop = NULL;
+  if (thread_loop) {
+    g_main_loop_unref(thread_loop);
+    thread_loop = NULL;
+  }
 
-  if (fixture->previousEngine)
-    ibus_bus_set_global_engine(fixture->bus, ibus_engine_desc_get_name(fixture->previousEngine));
-  g_clear_object(&fixture->previousEngine);
   g_clear_object(&fixture->bus);
   g_clear_object(&fixture->context);
 }
@@ -101,18 +94,17 @@ test_simple(IBusKeymanTestsFixture *fixture, gconstpointer user_data) {
   switch_keyboard(fixture, "en:/home/eberhard/.local/share/keyman/capslock/capslock.kmx");
 
   GdkEventKey keyEvent = {
-    .type             = GDK_KEY_PRESS,
-    .window           = window,
-    .send_event       = 0,
-    .time             = 0,
-    .state            = 0,
-    .keyval           = GDK_KEY_a,
-    .length           = 0,
-    .string           = NULL,
-    .hardware_keycode = KEY_A,
-    .group            = 0,
-    .is_modifier      = 0
-  };
+      .type             = GDK_KEY_PRESS,
+      .window           = window,
+      .send_event       = 0,
+      .time             = 0,
+      .state            = 0,
+      .keyval           = GDK_KEY_a,
+      .length           = 0,
+      .string           = NULL,
+      .hardware_keycode = KEY_A,
+      .group            = 0,
+      .is_modifier      = 0};
 
   g_assert_true(gtk_im_context_filter_keypress(fixture->context, &keyEvent));
 
@@ -160,6 +152,45 @@ test_simple2(IBusKeymanTestsFixture *fixture, gconstpointer user_data) {
   g_assert_cmpstr(ibus_im_test_get_text(fixture->ibuscontext), ==, "pass.");
 }
 
+static void
+test_keyboard(IBusKeymanTestsFixture *fixture, gconstpointer user_data) {
+  auto testfile = (char *)user_data;
+  auto kmxfile  = g_string_new();
+  g_string_append_printf(kmxfile, "und:%s/%s.kmx", )
+  // switch_keyboard(fixture, "und:/home/eberhard/.local/share/keyman/test_kmx/048 - modifier keys keep context.kmx");
+
+  // GdkEventKey keyEvent = {
+  //     .type             = GDK_KEY_PRESS,
+  //     .window           = window,
+  //     .send_event       = 0,
+  //     .time             = 0,
+  //     .state            = 0,
+  //     .keyval           = GDK_KEY_a,
+  //     .length           = 0,
+  //     .string           = NULL,
+  //     .hardware_keycode = KEY_A,
+  //     .group            = 0,
+  //     .is_modifier      = 0};
+
+  // g_assert_true(gtk_im_context_filter_keypress(fixture->context, &keyEvent));
+
+  // keyEvent.type  = GDK_KEY_RELEASE;
+  // keyEvent.state = 0;
+  // g_assert_false(gtk_im_context_filter_keypress(fixture->context, &keyEvent));
+
+  // keyEvent.keyval           = GDK_KEY_b;
+  // keyEvent.hardware_keycode = KEY_B;
+  // keyEvent.type             = GDK_KEY_PRESS;
+  // keyEvent.state            = 0;
+  // g_assert_true(gtk_im_context_filter_keypress(fixture->context, &keyEvent));
+
+  // keyEvent.type  = GDK_KEY_RELEASE;
+  // keyEvent.state = 0;
+  // g_assert_false(gtk_im_context_filter_keypress(fixture->context, &keyEvent));
+
+  // g_assert_cmpstr(ibus_im_test_get_text(fixture->ibuscontext), ==, "pass.");
+}
+
 void
 print_usage() {
   printf("Usage: %s --directory <keyboarddir> test1 [test2 ...]", g_get_prgname());
@@ -178,28 +209,47 @@ main(int argc, char *argv[]) {
   }
 
   char *directory = argv[2];
-  int nTests       = argc - 3;
-  char **tests     = &argv[3];
+  int nTests      = argc - 3;
+  char **tests    = &argv[3];
 
   gtk_init(&argc, &argv);
   g_test_init(&argc, &argv, NULL);
 
-  auto testEnvironment = TestEnvironment(argv[0]);
+  auto testEnvironment = TestEnvironment();
   int retVal           = 0;
   try {
     testEnvironment.Setup(directory, nTests, tests);
 
-    g_test_add(
-        "/send-key", IBusKeymanTestsFixture, NULL, ibus_keyman_tests_fixture_set_up, test_simple,
+    // g_test_add(
+    //     "/send-key", IBusKeymanTestsFixture, NULL, ibus_keyman_tests_fixture_set_up, test_simple,
+    //     ibus_keyman_tests_fixture_tear_down);
+    // g_test_add(
+    //     "/delete-text", IBusKeymanTestsFixture, NULL, ibus_keyman_tests_fixture_set_up, test_simple2,
+    //     ibus_keyman_tests_fixture_tear_down);
+
+    for (int i = 0; i < nTests; i++)
+    {
+      auto filename = tests[i];
+      if (strstr(filename, ".kmx") || strstr(filename, ".kmn")) {
+        filename[strlen(filename) - 4] = '\0';
+      }
+      auto file     = g_file_new_for_commandline_arg(filename);
+      auto testfile = g_file_get_basename(file);
+      auto testname = g_string_new(NULL);
+      g_string_append_printf(testname, "/%s", testfile);
+      g_test_add(
+        testname->str,
+        IBusKeymanTestsFixture,
+        testfile,
+        ibus_keyman_tests_fixture_set_up,
+        test_keyboard,
         ibus_keyman_tests_fixture_tear_down);
-    g_test_add("/delete-text", IBusKeymanTestsFixture, NULL, ibus_keyman_tests_fixture_set_up,
-      test_simple2, ibus_keyman_tests_fixture_tear_down);
+      g_object_unref(file);
+    }
 
     retVal = g_test_run();
-    testEnvironment.Restore();
   } catch (const std::exception &e) {
     std::cerr << e.what() << '\n';
-    testEnvironment.Restore();
   }
 
   test_module_unuse(module);
