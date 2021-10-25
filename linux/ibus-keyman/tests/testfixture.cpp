@@ -2,6 +2,7 @@
 #include <glib-object.h>
 #include <glib.h>
 #include <ibus.h>
+#include <iostream>
 #include <linux/input-event-codes.h>
 #include "testmodule.h"
 #include "testenvironment.hpp"
@@ -74,9 +75,10 @@ ibus_keyman_tests_fixture_tear_down(IBusKeymanTestsFixture *fixture, gconstpoint
 static void
 switch_keyboard(IBusKeymanTestsFixture *fixture, const gchar *keyboard) {
   ibus_bus_set_global_engine(fixture->bus, keyboard);
+
   IBusEngineDesc *desc = ibus_bus_get_global_engine(fixture->bus);
   g_object_ref_sink(desc);
-  g_debug("Engine: %s, %s", ibus_engine_desc_get_name(desc), ibus_engine_desc_get_longname(desc));
+  g_message("Engine: %s, %s", ibus_engine_desc_get_name(desc), ibus_engine_desc_get_longname(desc));
   g_assert_cmpstr(keyboard, ==, ibus_engine_desc_get_name(desc));
   g_clear_object(&desc);
 
@@ -124,7 +126,7 @@ test_simple(IBusKeymanTestsFixture *fixture, gconstpointer user_data) {
 static void
 test_simple2(IBusKeymanTestsFixture *fixture, gconstpointer user_data) {
   // switch_keyboard(fixture, "en:/home/eberhard/.local/share/keyman/mod_keep_context/mod_keep_context.kmx");
-  switch_keyboard(fixture, "en:/home/eberhard/.local/share/keyman/test_kmx/048 - modifier keys keep context.kmx");
+  switch_keyboard(fixture, "und:/home/eberhard/.local/share/keyman/test_kmx/048 - modifier keys keep context.kmx");
 
   GdkEventKey keyEvent = {
       .type             = GDK_KEY_PRESS,
@@ -183,15 +185,22 @@ main(int argc, char *argv[]) {
   g_test_init(&argc, &argv, NULL);
 
   auto testEnvironment = TestEnvironment(argv[0]);
-  testEnvironment.Setup(directory, nTests, tests);
+  int retVal           = 0;
+  try {
+    testEnvironment.Setup(directory, nTests, tests);
 
-  g_test_add(
-      "/send-key", IBusKeymanTestsFixture, NULL, ibus_keyman_tests_fixture_set_up, test_simple,
-      ibus_keyman_tests_fixture_tear_down);
-  g_test_add("/delete-text", IBusKeymanTestsFixture, NULL, ibus_keyman_tests_fixture_set_up,
-    test_simple2, ibus_keyman_tests_fixture_tear_down);
+    g_test_add(
+        "/send-key", IBusKeymanTestsFixture, NULL, ibus_keyman_tests_fixture_set_up, test_simple,
+        ibus_keyman_tests_fixture_tear_down);
+    g_test_add("/delete-text", IBusKeymanTestsFixture, NULL, ibus_keyman_tests_fixture_set_up,
+      test_simple2, ibus_keyman_tests_fixture_tear_down);
 
-  int retVal = g_test_run();
+    retVal = g_test_run();
+    testEnvironment.Restore();
+  } catch (const std::exception &e) {
+    std::cerr << e.what() << '\n';
+    testEnvironment.Restore();
+  }
 
   test_module_unuse(module);
   return retVal;

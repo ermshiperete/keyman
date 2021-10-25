@@ -1,5 +1,7 @@
 class TestEnvironment {
   const char* _currentExecutable;
+  int _ibus_pid;
+  int _keyman_pid;
 
   void LaunchIbus();
   void LaunchIbusKeyman();
