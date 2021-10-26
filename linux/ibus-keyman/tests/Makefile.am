@@ -42,11 +42,41 @@ libexec_PROGRAMS = ibus-keyman-tests
 ibus_keyman_tests_SOURCES = \
   ibusimcontext.c \
   ibusimcontext.h \
+  kmx_test_keyboard.cpp \
+  kmx_test_keyboard.hpp \
   testenvironment.cpp \
   testenvironment.hpp \
   testmodule.c \
   testmodule.h \
   testfixture.cpp \
+  kmx_actions.cpp \
+  kmx_base.h \
+  kmx_consts.cpp \
+  kmx_context.h \
+  kmx_debugger.cpp \
+  kmx_environment.cpp \
+  kmx_file.cpp \
+  kmx_modifiers.cpp \
+  kmx_options.h \
+  kmx_processevent.h \
+  kmx_processor.hpp \
+  kmx_xstring.h \
+  kmx_actions.h \
+  kmx_capslock.cpp \
+  kmx_context.cpp \
+  kmx_debug.cpp \
+  kmx_debugger.h \
+  kmx_environment.h \
+  kmx_file.h \
+  kmx_options.cpp \
+  kmx_processevent.cpp \
+  kmx_processor.cpp \
+  kmx_xstring.cpp \
+  json.cpp \
+  keyboard.cpp \
+  option.cpp \
+  state.cpp \
+  utfcodec.cpp \
   $(NULL)
 
 ibus_keyman_tests_CFLAGS = \
@@ -57,6 +87,7 @@ ibus_keyman_tests_CFLAGS = \
   @JSON_GLIB_CFLAGS@ \
   @KEYMAN_PROC_CFLAGS@ \
   -DPKGDATADIR=\"$(pkgdatadir)\" \
+  -I../../../common/core/desktop/src \
   $(NULL)
 
 ibus_keyman_tests_CPPFLAGS = \
@@ -67,6 +98,7 @@ ibus_keyman_tests_CPPFLAGS = \
   @JSON_GLIB_CFLAGS@ \
   @KEYMAN_PROC_CFLAGS@ \
   -DPKGDATADIR=\"$(pkgdatadir)\" \
+  -I../../../common/core/desktop/src \
   $(NULL)
 
 ibus_keyman_tests_LDFLAGS = \
