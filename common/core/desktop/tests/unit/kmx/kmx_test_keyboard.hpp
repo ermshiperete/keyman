@@ -34,13 +34,6 @@ public:
 
   km_kbp_option_item *get_keyboard_options(kmx_options options);
 
-  void apply_action(
-      km_kbp_state const *,
-      km_kbp_action_item const &act,
-      std::u16string &text_store,
-      std::vector<km_kbp_context_item> &context,
-      kmx_options &options);
-
   key_event next_key(std::string &keys);
 
   int
@@ -57,12 +50,7 @@ public:
     _caps_lock_on = caps_lock_on;
   }
 
-  bool get_beep_found() {
-    return _beep_found;
-  }
-
 private:
-  bool _beep_found   = false;
   bool _caps_lock_on = false;
 
   std::u16string parse_source_string(std::string const &s);
