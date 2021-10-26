@@ -88,6 +88,7 @@ ibus_keyman_tests_CFLAGS = \
   @KEYMAN_PROC_CFLAGS@ \
   -DPKGDATADIR=\"$(pkgdatadir)\" \
   -I../../../common/core/desktop/src \
+  -I../src \
   $(NULL)
 
 ibus_keyman_tests_CPPFLAGS = \
@@ -99,6 +100,7 @@ ibus_keyman_tests_CPPFLAGS = \
   @KEYMAN_PROC_CFLAGS@ \
   -DPKGDATADIR=\"$(pkgdatadir)\" \
   -I../../../common/core/desktop/src \
+  -I../src \
   $(NULL)
 
 ibus_keyman_tests_LDFLAGS = \

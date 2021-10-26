@@ -222,6 +222,8 @@ static gboolean _retrieve_surrounding       (IBusIMContext      *context);
 static gboolean _delete_surrounding         (IBusIMContext      *context,
                                              gint                offset_from_cursor,
                                              guint               nchars);
+static gboolean _timeout_callback(gpointer *user_data);
+static void _run_main_loop(IBusIMContext *ibusimcontext);
 
 static GType _ibus_type_im_context     = 0;
 static GtkIMContextClass *parent_class = NULL;
@@ -947,7 +949,7 @@ ibus_im_context_filter_keypress (GtkIMContext *context,
     if (ibusimcontext->ibuscontext) {
       gboolean result = _process_key_event(ibusimcontext->ibuscontext, event, ibusimcontext);
       if (result) {
-        g_main_loop_run(ibusimcontext->thread_loop);
+        _run_main_loop(ibusimcontext);
       }
       return result;
     }
@@ -2005,6 +2007,32 @@ _ibus_context_destroy_cb (IBusInputContext *ibuscontext,
   _preedit_end(ibusimcontext);
 }
 
+typedef struct _timeout_data
+{
+  GMainLoop *thread_loop;
+  gboolean timed_out;
+} timeout_data;
+
+static gboolean
+_timeout_callback(gpointer *user_data) {
+  timeout_data *data = (timeout_data*)user_data;
+  g_main_loop_quit(data->thread_loop);
+  data->timed_out = TRUE;
+  return FALSE;
+}
+
+static void
+_run_main_loop(IBusIMContext *ibusimcontext) {
+  timeout_data data;
+  data.thread_loop = ibusimcontext->thread_loop;
+  data.timed_out   = FALSE;
+  int timeout_id   = g_timeout_add(1000 /*ms*/, (GSourceFunc)_timeout_callback, &data);
+  g_main_loop_run(ibusimcontext->thread_loop);
+  if (!data.timed_out) {
+    g_source_remove(timeout_id);
+  }
+}
+
 static void
 _create_input_context (IBusIMContext *ibusimcontext)
 {
@@ -2058,7 +2086,7 @@ _create_input_context (IBusIMContext *ibusimcontext)
           _process_key_event(context, event, ibusimcontext);
           gboolean result = _process_key_event(context, event, ibusimcontext);
           if (result) {
-            g_main_loop_run(ibusimcontext->thread_loop);
+            _run_main_loop(ibusimcontext);
           }
 #if GTK_CHECK_VERSION(3, 98, 4)
           gdk_event_unref(event);
@@ -2154,6 +2182,7 @@ void ibus_im_test_set_text(IBusIMContext *context, const gchar *text) {
   if (!context->text) {
     context->text = g_string_new("");
   }
+
   g_string_append(context->text, text);
 }
 

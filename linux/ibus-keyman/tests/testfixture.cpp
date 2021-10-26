@@ -2,8 +2,14 @@
 #include <glib.h>
 #include <ibus.h>
 #include <iostream>
+#include <keyman/keyboardprocessor.h>
 #include <linux/input-event-codes.h>
+#include <memory>
+#include <string>
+#include <stdexcept>
 #include "ibusimcontext.h"
+#include "keycodes.h"
+#include "kmx_test_keyboard.hpp"
 #include "testenvironment.hpp"
 #include "testmodule.h"
 
@@ -71,7 +77,7 @@ switch_keyboard(IBusKeymanTestsFixture *fixture, const gchar *keyboard) {
 
   IBusEngineDesc *desc = ibus_bus_get_global_engine(fixture->bus);
   g_object_ref_sink(desc);
-  g_message("Engine: %s, %s", ibus_engine_desc_get_name(desc), ibus_engine_desc_get_longname(desc));
+  g_message("Switched to engine: '%s'", ibus_engine_desc_get_name(desc));
   g_assert_cmpstr(keyboard, ==, ibus_engine_desc_get_name(desc));
   g_clear_object(&desc);
 
@@ -89,106 +95,76 @@ switch_keyboard(IBusKeymanTestsFixture *fixture, const gchar *keyboard) {
   ibus_im_test_set_thread_loop(fixture->ibuscontext, thread_loop);
 }
 
-static void
-test_simple(IBusKeymanTestsFixture *fixture, gconstpointer user_data) {
-  switch_keyboard(fixture, "en:/home/eberhard/.local/share/keyman/capslock/capslock.kmx");
-
-  GdkEventKey keyEvent = {
-      .type             = GDK_KEY_PRESS,
-      .window           = window,
-      .send_event       = 0,
-      .time             = 0,
-      .state            = 0,
-      .keyval           = GDK_KEY_a,
-      .length           = 0,
-      .string           = NULL,
-      .hardware_keycode = KEY_A,
-      .group            = 0,
-      .is_modifier      = 0};
-
-  g_assert_true(gtk_im_context_filter_keypress(fixture->context, &keyEvent));
-
-  keyEvent.type  = GDK_KEY_RELEASE;
-  keyEvent.state = 0;
-  g_assert_false(gtk_im_context_filter_keypress(fixture->context, &keyEvent));
-
-  g_assert_cmpstr(ibus_im_test_get_text(fixture->ibuscontext), ==, "fail.");
+template <typename... Args>
+std::string
+string_format(const std::string &format, Args... args) {
+  // from https://stackoverflow.com/a/26221725/487503
+  int size_s = std::snprintf(nullptr, 0, format.c_str(), args...) + 1;  // Extra space for '\0'
+  if (size_s <= 0) {
+    throw std::runtime_error("Error during formatting.");
+  }
+  auto size = static_cast<size_t>(size_s);
+  auto buf  = std::make_unique<char[]>(size);
+  std::snprintf(buf.get(), size, format.c_str(), args...);
+  return std::string(buf.get(), buf.get() + size - 1);  // We don't want the '\0' inside
 }
 
-static void
-test_simple2(IBusKeymanTestsFixture *fixture, gconstpointer user_data) {
-  // switch_keyboard(fixture, "en:/home/eberhard/.local/share/keyman/mod_keep_context/mod_keep_context.kmx");
-  switch_keyboard(fixture, "und:/home/eberhard/.local/share/keyman/test_kmx/048 - modifier keys keep context.kmx");
-
-  GdkEventKey keyEvent = {
-      .type             = GDK_KEY_PRESS,
-      .window           = window,
-      .send_event       = 0,
-      .time             = 0,
-      .state            = 0,
-      .keyval           = GDK_KEY_a,
-      .length           = 0,
-      .string           = NULL,
-      .hardware_keycode = KEY_A,
-      .group            = 0,
-      .is_modifier      = 0};
-
-  g_assert_true(gtk_im_context_filter_keypress(fixture->context, &keyEvent));
-
-  keyEvent.type  = GDK_KEY_RELEASE;
-  keyEvent.state = 0;
-  g_assert_false(gtk_im_context_filter_keypress(fixture->context, &keyEvent));
-
-  keyEvent.keyval           = GDK_KEY_b;
-  keyEvent.hardware_keycode = KEY_B;
-  keyEvent.type             = GDK_KEY_PRESS;
-  keyEvent.state            = 0;
-  g_assert_true(gtk_im_context_filter_keypress(fixture->context, &keyEvent));
-
-  keyEvent.type  = GDK_KEY_RELEASE;
-  keyEvent.state = 0;
-  g_assert_false(gtk_im_context_filter_keypress(fixture->context, &keyEvent));
-
-  g_assert_cmpstr(ibus_im_test_get_text(fixture->ibuscontext), ==, "pass.");
+static unsigned short vk_to_keycode(unsigned short vk) {
+  for (int i = 0; i < sizeof(keycode_to_vk); i++) {
+    if (keycode_to_vk[i] == vk)
+      return i;
+  }
+  return -1;
 }
 
 static void
 test_keyboard(IBusKeymanTestsFixture *fixture, gconstpointer user_data) {
-  auto testfile = (char *)user_data;
-  auto kmxfile  = g_string_new();
-  g_string_append_printf(kmxfile, "und:%s/%s.kmx", )
-  // switch_keyboard(fixture, "und:/home/eberhard/.local/share/keyman/test_kmx/048 - modifier keys keep context.kmx");
+  auto sourcefile = string_format("%s.kmn", (char *)user_data);
+  auto kmxfile = string_format("und:%s.kmx", (char*)user_data);
 
-  // GdkEventKey keyEvent = {
-  //     .type             = GDK_KEY_PRESS,
-  //     .window           = window,
-  //     .send_event       = 0,
-  //     .time             = 0,
-  //     .state            = 0,
-  //     .keyval           = GDK_KEY_a,
-  //     .length           = 0,
-  //     .string           = NULL,
-  //     .hardware_keycode = KEY_A,
-  //     .group            = 0,
-  //     .is_modifier      = 0};
+  km::tests::KmxTestKeyboard test_keyboard;
+  std::string keys        = "";
+  std::u16string expected = u"", context = u"";
+  km::tests::kmx_options options;
+  bool expected_beep = false;
+  test_keyboard.load_source(sourcefile.c_str(), keys, expected, context, options, expected_beep);
 
-  // g_assert_true(gtk_im_context_filter_keypress(fixture->context, &keyEvent));
+  switch_keyboard(fixture, kmxfile.c_str());
 
-  // keyEvent.type  = GDK_KEY_RELEASE;
-  // keyEvent.state = 0;
-  // g_assert_false(gtk_im_context_filter_keypress(fixture->context, &keyEvent));
+  auto contextStr = (gunichar2 *)context.c_str();
+  ibus_im_test_set_text(fixture->ibuscontext, g_utf16_to_utf8(contextStr, context.length(), NULL, NULL, NULL));
 
-  // keyEvent.keyval           = GDK_KEY_b;
-  // keyEvent.hardware_keycode = KEY_B;
-  // keyEvent.type             = GDK_KEY_PRESS;
-  // keyEvent.state            = 0;
-  // g_assert_true(gtk_im_context_filter_keypress(fixture->context, &keyEvent));
+  for (auto p = test_keyboard.next_key(keys); p.vk != 0; p = test_keyboard.next_key(keys)) {
+    // Because a normal system tracks caps lock state itself,
+    // we mimic that in the tests. We assume caps lock state is
+    // updated on key_down before the processor receives the
+    // event.
+    if (p.vk == KM_KBP_VKEY_CAPS) {
+      test_keyboard.toggle_caps_lock_state();
+    }
 
-  // keyEvent.type  = GDK_KEY_RELEASE;
-  // keyEvent.state = 0;
-  // g_assert_false(gtk_im_context_filter_keypress(fixture->context, &keyEvent));
+    GdkEventKey keyEvent = {
+        .type             = GDK_KEY_PRESS,
+        .window           = window,
+        .send_event       = 0,
+        .time             = 0,
+        .state            = (unsigned int)(p.modifier_state | test_keyboard.caps_lock_state()),
+        .keyval           = p.vk,
+        .length           = 0,
+        .string           = NULL,
+        .hardware_keycode = vk_to_keycode(p.vk),
+        .group            = 0,
+        .is_modifier      = 0
+    };
+    gtk_im_context_filter_keypress(fixture->context, &keyEvent);
 
-  // g_assert_cmpstr(ibus_im_test_get_text(fixture->ibuscontext), ==, "pass.");
+    keyEvent.type  = GDK_KEY_RELEASE;
+    keyEvent.state = p.modifier_state | test_keyboard.caps_lock_state();
+    gtk_im_context_filter_keypress(fixture->context, &keyEvent);
+  }
+
+  auto expectedText = g_utf16_to_utf8((gunichar2*)expected.c_str(), expected.length(), NULL, NULL, NULL);
+  g_assert_cmpstr(ibus_im_test_get_text(fixture->ibuscontext), ==, expectedText);
 }
 
 void
@@ -216,41 +192,30 @@ main(int argc, char *argv[]) {
   g_test_init(&argc, &argv, NULL);
 
   auto testEnvironment = TestEnvironment();
-  int retVal           = 0;
-  try {
-    testEnvironment.Setup(directory, nTests, tests);
+  testEnvironment.Setup(directory, nTests, tests);
 
-    // g_test_add(
-    //     "/send-key", IBusKeymanTestsFixture, NULL, ibus_keyman_tests_fixture_set_up, test_simple,
-    //     ibus_keyman_tests_fixture_tear_down);
-    // g_test_add(
-    //     "/delete-text", IBusKeymanTestsFixture, NULL, ibus_keyman_tests_fixture_set_up, test_simple2,
-    //     ibus_keyman_tests_fixture_tear_down);
-
-    for (int i = 0; i < nTests; i++)
-    {
-      auto filename = tests[i];
-      if (strstr(filename, ".kmx") || strstr(filename, ".kmn")) {
-        filename[strlen(filename) - 4] = '\0';
-      }
-      auto file     = g_file_new_for_commandline_arg(filename);
-      auto testfile = g_file_get_basename(file);
-      auto testname = g_string_new(NULL);
-      g_string_append_printf(testname, "/%s", testfile);
-      g_test_add(
-        testname->str,
-        IBusKeymanTestsFixture,
-        testfile,
-        ibus_keyman_tests_fixture_set_up,
-        test_keyboard,
-        ibus_keyman_tests_fixture_tear_down);
-      g_object_unref(file);
+  // Add tests
+  for (int i = 0; i < nTests; i++)
+  {
+    auto filename = tests[i];
+    if (strstr(filename, ".kmx") || strstr(filename, ".kmn")) {
+      filename[strlen(filename) - 4] = '\0';
     }
-
-    retVal = g_test_run();
-  } catch (const std::exception &e) {
-    std::cerr << e.what() << '\n';
+    auto file     = g_file_new_for_commandline_arg(filename);
+    auto testfilebase = g_file_get_basename(file);
+    auto testname = g_string_new(NULL);
+    g_string_append_printf(testname, "/%s", testfilebase);
+    auto testfile = g_file_new_build_filename(directory, testfilebase, NULL);
+    g_test_add(
+        testname->str, IBusKeymanTestsFixture, g_file_get_parse_name(testfile), ibus_keyman_tests_fixture_set_up, test_keyboard,
+        ibus_keyman_tests_fixture_tear_down);
+    g_object_unref(file);
+    g_object_unref(testfile);
+    g_string_free(testname, TRUE);
   }
+
+  // Run tests
+  int retVal = g_test_run();
 
   test_module_unuse(module);
   return retVal;
