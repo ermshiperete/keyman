@@ -22,6 +22,10 @@ function triggerBuilds() {
         local job=${build%_Jenkins}
         echo Triggering Jenkins build "$job" "$base" "true"
         triggerJenkinsBuild "$job" "$base" "true"
+      elif [ "${build:(-7)}" == "_GitHub" ]; then
+        local job=${build%_GitHub}
+        echo Triggering GitHub action build "$job" "$base"
+        triggerGitHubActionsBuild "$job" "$base"
       else
         echo Triggering TeamCity build false "$build" "$TEAMCITY_VCS_ID" "$base"
         triggerTeamCityBuild false "$build" "$TEAMCITY_VCS_ID" "$base"
@@ -122,4 +126,38 @@ function triggerJenkinsBuild() {
 
     echo
   fi
+}
+
+function triggerGitHubActionsBuild() {
+  local GITHUB_ACTION="$1"
+  local GIT_BRANCH="${2:-master}"
+  local GIT_REF=$GIT_BRANCH
+
+  local GITHUB_SERVER=https://api.github.com/repos/keymanapp/keyman/dispatches
+
+  # This will only be true if we created and pushed a tag
+  if [ "${action:-""}" == "commit" ]; then
+    GIT_REF="release-$VERSION_WITH_TAG"
+  fi
+
+  if [[ $GITHUB_BRANCH != stable-* ]] && [[ $GITHUB_BRANCH =~ [0-9]+ ]]; then
+    GITHUB_BRANCH="PR-${GITHUB_BRANCH}"
+  fi
+
+  local DATA="{\"event_type\": \"$GITHUB_ACTION\", \
+      \"client_payload\": { \
+        \"ref\": \"$GIT_REF\", \
+        \"branch\": \"$GITHUB_BRANCH\" \
+    }}"
+
+  echo "GitHub Action Data: $DATA"
+
+  # adjust indentation for output of curl
+  echo -n "     "
+  curl --silent --write-out '\n' \
+    --request POST \
+    --header "Accept: application/vnd.github+json" \
+    --header "Authorization: token $GITHUB_TOKEN" \
+    --data "$DATA" \
+    $GITHUB_SERVER
 }

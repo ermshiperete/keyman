@@ -1,0 +1,137 @@
+name: "Ubuntu packaging"
+on:
+  push:
+  repository_dispatch:
+    types: ['deb-packaging']
+
+jobs:
+  sourcepackage:
+    name: Build source package
+    runs-on: ubuntu-22.04
+    outputs:
+      VERSION: ${{ steps.version_step.outputs.VERSION }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b #v3.0.2
+      with:
+        ref: '${{ github.event.client_payload.ref }}'
+
+    - name: Install dependencies
+      run: |
+        export DEBIAN_FRONTEND=noninteractive
+        export DEBIAN_PRIORITY=critical
+        export DEBCONF_NOWARNINGS=yes
+        sudo apt-get update
+        sudo apt-get install -q -y devscripts equivs
+        cd linux
+        sudo mk-build-deps --install --tool='apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends --yes' debian/control
+
+    - name: Build source package
+      run: |
+        cd linux
+        tier="stable"
+
+        echo "Make source package for keyman"
+        echo "reconfigure"
+        JENKINS="yes" TIER="$tier" ./scripts/reconf.sh keyman
+
+        echo "Make origdist"
+        ./scripts/dist.sh origdist keyman
+        echo "Make deb source"
+        ./scripts/deb.sh sourcepackage keyman
+
+        mv builddebs/* ..
+
+    - name: Store source package
+      uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8 # v3.1.0
+      with:
+        name: keyman-srcpkg
+        path: |
+          keyman_*
+          debian/***/*
+
+    - name: Set version as output parameter
+      id: version_step
+      shell: bash
+      run: |
+        . "resources/build/build-utils.sh"
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+  binary_packages:
+    name: Build binary packages
+    needs: sourcepackage
+    strategy:
+      fail-fast: true
+      matrix:
+        dist: [focal, jammy, kinetic]
+        arch: [amd64]
+
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download Artifacts
+      uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741 # v3.0.0
+      with:
+        path: artifacts
+
+    - name: Set prerelease tag
+      run: echo "PRERELEASE_TAG=${{ github.event.client_payload.branch }}-$GITHUB_RUN_NUMBER.$GITHUB_RUN_ATTEMPT"  >> "$GITHUB_ENV"
+      if: github.event.client_payload.branch
+
+    - name: Build
+      uses: sillsdev/gha-ubuntu-packaging@a51bc2da75165fb84136496b6126b4a735e2ef8d ####
+      with:
+        dist: "${{ matrix.dist }}"
+        platform: "${{ matrix.arch }}"
+        source_dir: "artifacts/keyman-srcpkg"
+        sourcepackage: "keyman_${{ needs.sourcepackage.outputs.VERSION }}-1.dsc"
+        deb_fullname: "Keyman GHA packager"
+        deb_email: "support@keyman.com"
+        prerelease_tag: ${{ env.PRERELEASE_TAG }}
+
+    - name: Store binary packages
+      uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8 # v3.1.0
+      with:
+        name: keyman-binarypkgs
+        path: |
+          artifacts/*
+          !artifacts/keyman-srcpkg/
+
+  deb_signing:
+    name: Sign source and binary packages
+    needs: [sourcepackage, binary_packages]
+    runs-on: ubuntu-latest
+    environment: deploy
+
+    steps:
+      - name: Sign packages
+        uses: sillsdev/gha-deb-signing@c035bafb5cd334191b6943d063743a619750b016 # v0.1
+        with:
+          src-pkg-path: "artifacts/keyman-srcpkg"
+          src-pkg-name: "keyman_${{ needs.sourcepackage.outputs.VERSION }}-1_source.changes"
+          bin-pkg-path: "artifacts/keyman-binarypkgs"
+          bin-pkg-name: "keyman_${{ needs.sourcepackage.outputs.VERSION }}-1+"
+          artifacts-name: "keyman-signedpkgs"
+          gpg-signing-key: "${{ secrets.GPG_SIGNING_KEY }}"
+          debsign-keyid: "${{ secrets.DEBSIGN_KEYID }}"
+
+  # TODO: upload not yet possible - will need a self-hosted runner inside of
+  # the VPN to do that.
+
+  # upload-to-llso:
+  #   name: Upload packages to llso
+  #   needs: deb_signing
+  #   runs-on: ubuntu-latest
+  #   environment: deploy
+
+  #   steps:
+  #   - name: Configure GPG Key
+  #     run: |
+  #       echo -n "${{ secrets.GPG_SIGNING_KEY }}" | base64 --decode | gpg --import
+
+  #   - name: Download Artifacts
+  #     uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741 # v3.0.0
+  #     with:
+  #       path: artifacts
+
+  #   - name: Upload
+  #     run: echo "Upload..."
