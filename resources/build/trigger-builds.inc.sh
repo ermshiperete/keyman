@@ -5,7 +5,8 @@
 #
 
 function triggerBuilds() {
-  local base=`git branch --show-current`
+  local base
+  base=$(git branch --show-current)
   # convert stable-14.0 to stable_14_0 to fit in with the definitions
   # in trigger-definitions.inc.sh
   local bcbase=${base//[-.]/_}
@@ -13,17 +14,21 @@ function triggerBuilds() {
   echo "base=$base, TEAMCITY_VCS_ID=${TEAMCITY_VCS_ID}"
 
 
-  for platform in ${available_platforms[@]}; do
-    eval builds='(${'bc_${bcbase}_${platform}'[@]})'
+  for platform in "${available_platforms[@]}"; do
+    eval builds='(${'"bc_${bcbase}_${platform}"'[@]})'
     for build in "${builds[@]}"; do
       if [[ $build == "" ]]; then continue; fi
       if [ "${build:(-8)}" == "_Jenkins" ]; then
         local job=${build%_Jenkins}
         echo Triggering Jenkins build "$job" "$base" "true"
         triggerJenkinsBuild "$job" "$base" "true"
+      elif [ "${build:(-7)}" == "_GitHub" ]; then
+        local job=${build%_GitHub}
+        echo Triggering GitHub action build "$job" "$base"
+        triggerGitHubActionsBuild "$job" "$base"
       else
-        echo Triggering TeamCity build false $build $TEAMCITY_VCS_ID $base
-        triggerTeamCityBuild false $build $TEAMCITY_VCS_ID $base
+        echo Triggering TeamCity build false "$build" "$TEAMCITY_VCS_ID" "$base"
+        triggerTeamCityBuild false "$build" "$TEAMCITY_VCS_ID" "$base"
       fi
     done
   done
@@ -42,8 +47,9 @@ function triggerTeamCityBuild() {
     local TEAMCITY_BRANCH_NAME=
   fi
 
-  local GIT_OID=`git rev-parse HEAD`
   local TEAMCITY_SERVER=https://build.palaso.org
+  local GIT_OID
+  GIT_OID=$(git rev-parse HEAD)
 
   local command
 
@@ -87,7 +93,8 @@ function triggerJenkinsBuild() {
     JENKINS_BRANCH="PR-${JENKINS_BRANCH}"
   fi
 
-  local OUTPUT=$(curl --silent --write-out '\n' \
+  local OUTPUT
+  OUTPUT=$(curl --silent --write-out '\n' \
     -X POST \
     --header "token: $JENKINS_TOKEN" \
     --header "Content-Type: application/json" \
@@ -113,10 +120,44 @@ function triggerJenkinsBuild() {
       count=$((++count))
     fi
   done
-  if [[ $count < 1 ]]; then
+  if (( count < 1 )); then
     # DEBUG
-    echo -n $OUTPUT
+    echo -n "$OUTPUT"
 
     echo
   fi
+}
+
+function triggerGitHubActionsBuild() {
+  local GITHUB_ACTION="$1"
+  local GIT_BRANCH="${2:-master}"
+  local GIT_REF=$GIT_BRANCH
+
+  local GITHUB_SERVER=https://api.github.com/repos/keymanapp/keyman/dispatches
+
+  # This will only be true if we created and pushed a tag
+  if [ "${action:-""}" == "commit" ]; then
+    GIT_REF="release-$VERSION_WITH_TAG"
+  fi
+
+  if [[ $GITHUB_BRANCH != stable-* ]] && [[ $GITHUB_BRANCH =~ [0-9]+ ]]; then
+    GITHUB_BRANCH="PR-${GITHUB_BRANCH}"
+  fi
+
+  local DATA="{\"event_type\": \"$GITHUB_ACTION\", \
+      \"client_payload\": { \
+        \"ref\": \"$GIT_REF\", \
+        \"branch\": \"$GITHUB_BRANCH\" \
+    }}"
+
+  echo "GitHub Action Data: $DATA"
+
+  # adjust indentation for output of curl
+  echo -n "     "
+  curl --silent --write-out '\n' \
+    --request POST \
+    --header "Accept: application/vnd.github+json" \
+    --header "Authorization: token $GITHUB_TOKEN" \
+    --data "$DATA" \
+    $GITHUB_SERVER
 }
