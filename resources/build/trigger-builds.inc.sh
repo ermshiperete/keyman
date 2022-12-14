@@ -25,7 +25,7 @@ function triggerBuilds() {
       elif [ "${build:(-7)}" == "_GitHub" ]; then
         local job=${build%_GitHub}
         echo Triggering GitHub action build "$job" "$base"
-        triggerGitHubActionsBuild "$job" "$base"
+        triggerGitHubActionsBuild false "$job" "$base"
       else
         echo Triggering TeamCity build false "$build" "$TEAMCITY_VCS_ID" "$base"
         triggerTeamCityBuild false "$build" "$TEAMCITY_VCS_ID" "$base"
@@ -129,8 +129,9 @@ function triggerJenkinsBuild() {
 }
 
 function triggerGitHubActionsBuild() {
-  local GITHUB_ACTION="$1"
-  local GIT_BRANCH="${2:-master}"
+  local IS_TEST_BUILD="$1"
+  local GITHUB_ACTION="$2"
+  local GIT_BRANCH="${3:-master}"
   local GIT_REF=$GIT_BRANCH
 
   local GITHUB_SERVER=https://api.github.com/repos/keymanapp/keyman/dispatches
@@ -147,7 +148,8 @@ function triggerGitHubActionsBuild() {
   local DATA="{\"event_type\": \"$GITHUB_ACTION\", \
       \"client_payload\": { \
         \"ref\": \"$GIT_REF\", \
-        \"branch\": \"$GITHUB_BRANCH\" \
+        \"branch\": \"$GITHUB_BRANCH\", \
+        \"isTestBuild\": \"$IS_TEST_BUILD\" \
     }}"
 
   echo "GitHub Action Data: $DATA"

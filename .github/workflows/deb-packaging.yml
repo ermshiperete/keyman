@@ -1,6 +1,5 @@
 name: "Ubuntu packaging"
 on:
-  push:
   repository_dispatch:
     types: ['deb-packaging']
 
@@ -10,19 +9,20 @@ jobs:
     runs-on: ubuntu-22.04
     outputs:
       VERSION: ${{ steps.version_step.outputs.VERSION }}
+      PRERELEASE_TAG: ${{ steps.prerelease_tag.outputs.PRERELEASE_TAG }}
     steps:
     - name: Checkout
       uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b #v3.0.2
       with:
         ref: '${{ github.event.client_payload.ref }}'
 
+    - name: Install devscripts
+      uses: ./.github/actions/apt-install
+      with:
+        packages: devscripts equivs
+
     - name: Install dependencies
       run: |
-        export DEBIAN_FRONTEND=noninteractive
-        export DEBIAN_PRIORITY=critical
-        export DEBCONF_NOWARNINGS=yes
-        sudo apt-get update
-        sudo apt-get install -q -y devscripts equivs
         cd linux
         sudo mk-build-deps --install --tool='apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends --yes' debian/control
 
@@ -49,13 +49,27 @@ jobs:
         path: |
           keyman_*
           debian/***/*
+      if: always()
 
     - name: Set version as output parameter
       id: version_step
       shell: bash
       run: |
+        THIS_SCRIPT="$GITHUB_WORKSPACE/.github/workflows/deb-packaging.yml"
         . "resources/build/build-utils.sh"
         echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+    - name: Set prerelease tag
+      id: prerelease_tag
+      shell: bash
+      run: |
+        if [ "${{ github.event.client_payload.isTestBuild }}" == "true" ]; then
+          PRERELEASE_TAG="~${{ github.event.client_payload.branch }}-$GITHUB_RUN_NUMBER.$GITHUB_RUN_ATTEMPT"
+        else
+          PRERELEASE_TAG=""
+        fi
+        echo "PRERELEASE_TAG=$PRERELEASE_TAG" >> $GITHUB_OUTPUT
+        echo "PRERELEASE_TAG=$PRERELEASE_TAG, isTestBuild=${{ github.event.client_payload.isTestBuild }}"
 
   binary_packages:
     name: Build binary packages
@@ -73,10 +87,6 @@ jobs:
       with:
         path: artifacts
 
-    - name: Set prerelease tag
-      run: echo "PRERELEASE_TAG=${{ github.event.client_payload.branch }}-$GITHUB_RUN_NUMBER.$GITHUB_RUN_ATTEMPT"  >> "$GITHUB_ENV"
-      if: github.event.client_payload.branch
-
     - name: Build
       uses: sillsdev/gha-ubuntu-packaging@a51bc2da75165fb84136496b6126b4a735e2ef8d ####
       with:
@@ -86,7 +96,7 @@ jobs:
         sourcepackage: "keyman_${{ needs.sourcepackage.outputs.VERSION }}-1.dsc"
         deb_fullname: "Keyman GHA packager"
         deb_email: "support@keyman.com"
-        prerelease_tag: ${{ env.PRERELEASE_TAG }}
+        prerelease_tag: ${{ needs.sourcepackage.outputs.PRERELEASE_TAG }}
 
     - name: Store binary packages
       uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8 # v3.1.0
@@ -95,6 +105,7 @@ jobs:
         path: |
           artifacts/*
           !artifacts/keyman-srcpkg/
+      if: always()
 
   deb_signing:
     name: Sign source and binary packages
@@ -109,7 +120,7 @@ jobs:
           src-pkg-path: "artifacts/keyman-srcpkg"
           src-pkg-name: "keyman_${{ needs.sourcepackage.outputs.VERSION }}-1_source.changes"
           bin-pkg-path: "artifacts/keyman-binarypkgs"
-          bin-pkg-name: "keyman_${{ needs.sourcepackage.outputs.VERSION }}-1+"
+          bin-pkg-name: "keyman_${{ needs.sourcepackage.outputs.VERSION }}-1${{ needs.sourcepackage.outputs.PRERELEASE_TAG }}+"
           artifacts-name: "keyman-signedpkgs"
           gpg-signing-key: "${{ secrets.GPG_SIGNING_KEY }}"
           debsign-keyid: "${{ secrets.DEBSIGN_KEYID }}"
@@ -135,3 +146,44 @@ jobs:
 
   #   - name: Upload
   #     run: echo "Upload..."
+
+  api_verification:
+    name: Verify API for libkmnkbp0.so
+    needs: [sourcepackage, binary_packages]
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b #v3.0.2
+      with:
+        ref: '${{ github.event.client_payload.ref }}'
+
+    - name: Download Artifacts
+      uses: actions/download-artifact@fb598a63ae348fa914e94cd0ff38f362e927b741 # v3.0.0
+      with:
+        path: artifacts
+
+    - name: Install devscripts
+      uses: ./.github/actions/apt-install
+      with:
+        packages: devscripts equivs
+
+    - name: Verify API
+      run: |
+        tar xf "artifacts/keyman-srcpkg/keyman_${{ needs.sourcepackage.outputs.VERSION }}-1.debian.tar.xz"
+        if [ ! -f debian/libkmnkbp0-0.symbols ]; then
+          echo ":warning: Missing libkmnkbp0-0.symbols file" >> $GITHUB_STEP_SUMMARY
+        else
+          tmpDir=$(mktemp -d)
+          dpkg -x "artifacts/keyman-binarypkgs/libkmnkbp0-0_${{ needs.sourcepackage.outputs.VERSION }}-1${{ needs.sourcepackage.outputs.PRERELEASE_TAG }}+jammy1_amd64.deb" $tmpDir
+          cd debian
+          dpkg-gensymbols -v${{ needs.sourcepackage.outputs.VERSION }} -plibkmnkbp0-0 -e${tmpDir}/usr/lib/x86_64-linux-gnu/libkmnkbp0.so* -Olibkmnkbp0-0.symbols -c4
+          echo ":heavy_check_mark: libkmnkbp0-0 API didn't change" >> $GITHUB_STEP_SUMMARY
+        fi
+
+    - name: Archive .symbols file
+      uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8 # v3.1.0
+      with:
+        name: libkmnkbp0-0.symbols
+        path: debian/libkmnkbp0-0.symbols
+      if: always()
