@@ -125,6 +125,8 @@ gchar** keyman_get_custom_keyboards();
 // keyboards  Null-terminated array of strings naming the user-added keyboard
 void keyman_set_custom_keyboards(gchar **keyboards);
 
+GHashTable * keyman_get_custom_keyboard_dictionary();
+
 G_END_DECLS
 
 #endif

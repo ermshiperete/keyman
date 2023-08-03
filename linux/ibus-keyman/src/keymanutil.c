@@ -152,9 +152,88 @@ ibus_keyman_engine_desc_new (gchar * file_name,
     return engine_desc;
 }
 
+IBusEngineDesc*
+get_engine_for_language(
+  kmp_keyboard *keyboard,
+  kmp_details *details,
+  keyboard_details *kbd_details,
+  gchar * kmp_dir,
+  gchar* lang_id,
+  gchar* lang_name
+) {
+  IBusEngineDesc* engine_desc = NULL;
+  if (!lang_id)
+    return engine_desc;
+
+  int capacity          = 255;
+  gchar *name_with_lang = NULL;
+  gchar *minimized_tag  = g_new0(gchar, capacity);
+  int result = bcp47_minimize(lang_id, minimized_tag, capacity);
+  if (result < 0) {
+    g_strlcpy(minimized_tag, lang_id, capacity);
+  }
+
+  gchar *lang_code = g_new0(gchar, capacity);
+  if (!bcp47_get_language_code(minimized_tag, lang_code, capacity)) {
+    g_strlcpy(lang_code, minimized_tag, capacity);
+  }
+
+  // If ibus doesn't know about the language then append the
+  // language name to the keyboard name
+  if (lang_name != NULL) {
+    gchar *ibus_lang = ibus_get_untranslated_language_name(lang_code);
+    g_debug("%s: untranslated ibus language for %s: %s", __FUNCTION__, minimized_tag, ibus_lang);
+    if (g_strcmp0(ibus_lang, "Other") == 0) {
+      name_with_lang = g_strjoin(" - ", keyboard->name, lang_name, NULL);
+    }
+    g_free(ibus_lang);
+  }
+
+  gchar *abs_kmx = g_strjoin("/", kmp_dir, keyboard->kmx_file, NULL);
+  gchar *id_with_lang = g_strjoin(":", minimized_tag, abs_kmx, NULL);
+
+  g_message("adding engine %s", id_with_lang);
+  engine_desc = ibus_keyman_engine_desc_new(
+    id_with_lang,                                      // lang:kmx full path
+    name_with_lang ? name_with_lang : keyboard->name,  // longname
+    kbd_details->description,                          // description
+    details->info.copyright,                           // copyright if available
+    lang_code,                      // language, most are ignored by ibus except major languages
+    kbd_details->license,           // license
+    details->info.author_desc,      // author name only, not email
+    keyman_get_icon_file(abs_kmx),  // icon full path
+    "us",                           // layout defaulting to us (en-US)
+    keyboard->version);
+  g_free(abs_kmx);
+  g_free(lang_code);
+  g_free(minimized_tag);
+  g_free(id_with_lang);
+  g_free(name_with_lang);
+  return engine_desc;
+}
+
+GHashTable *
+keyman_get_custom_keyboard_dictionary() {
+  gchar **custom_keyboards = keyman_get_custom_keyboards();
+  if (!custom_keyboards)
+    return NULL;
+
+  for (int i = 0; custom_keyboards[i]; i++) {
+    // gchar *keyboard = custom_keyboards[i];
+
+  }
+
+  g_strfreev(custom_keyboards);
+  return NULL;;
+}
+
 GList *
 ibus_keyman_add_engines(GList * engines, GList * kmpdir_list)
 {
+    // TODO: read keyman_get_custom_keyboards and create dictionary
+    // with key keyboard.
+    // Then when we process the languages check if we have custom keyboards
+    // for that kbd and add them.
     GList *p, *k, *l, *e;
 
     for (p=kmpdir_list; p != NULL; p = p->next) {
@@ -180,7 +259,6 @@ ibus_keyman_add_engines(GList * engines, GList * kmpdir_list)
             }
 
             if (!alreadyexists) {
-                gchar *abs_kmx = g_strjoin("/", kmp_dir, keyboard->kmx_file, NULL);
                 gchar *json_file = g_strjoin(".", keyboard->id, "json", NULL);
                 keyboard_details *kbd_details = g_new0(keyboard_details, 1);
                 get_keyboard_details(kmp_dir, json_file, kbd_details);
@@ -189,55 +267,15 @@ ibus_keyman_add_engines(GList * engines, GList * kmpdir_list)
                 if (keyboard->languages != NULL) {
                     for (l=keyboard->languages; l != NULL; l = l->next) {
                         kmp_language *language = (kmp_language *) l->data;
-                        if (language->id != NULL) {
-                          int capacity          = 255;
-                          gchar *name_with_lang = NULL;
-                          gchar *minimized_tag  = g_new0(gchar, capacity);
-                          int result = bcp47_minimize(language->id, minimized_tag, capacity);
-                          if (result < 0) {
-                            g_strlcpy(minimized_tag, language->id, capacity);
-                          }
-
-                          gchar *lang_code = g_new0(gchar, capacity);
-                          if (!bcp47_get_language_code(minimized_tag, lang_code, capacity)) {
-                            g_strlcpy(lang_code, minimized_tag, capacity);
-                          }
-
-                          // If ibus doesn't know about the language then append the
-                          // language name to the keyboard name
-                          if (language->name != NULL) {
-                            gchar *ibus_lang = ibus_get_untranslated_language_name(lang_code);
-                            g_debug("%s: untranslated ibus language for %s: %s", __FUNCTION__, minimized_tag, ibus_lang);
-                            if (g_strcmp0(ibus_lang, "Other") == 0) {
-                              name_with_lang = g_strjoin(" - ", keyboard->name, language->name, NULL);
-                            }
-                            g_free(ibus_lang);
-                          }
-
-                          gchar *id_with_lang = g_strjoin(":", minimized_tag, abs_kmx, NULL);
-
-                          g_message("adding engine %s", id_with_lang);
-                          engines = g_list_append(
-                              engines,
-                              ibus_keyman_engine_desc_new(
-                                  id_with_lang,                                      // lang:kmx full path
-                                  name_with_lang ? name_with_lang : keyboard->name,  // longname
-                                  kbd_details->description,                          // description
-                                  details->info.copyright,                           // copyright if available
-                                  lang_code,                      // language, most are ignored by ibus except major languages
-                                  kbd_details->license,           // license
-                                  details->info.author_desc,      // author name only, not email
-                                  keyman_get_icon_file(abs_kmx),  // icon full path
-                                  "us",                           // layout defaulting to us (en-US)
-                                  keyboard->version));
-                          g_free(lang_code);
-                          g_free(minimized_tag);
-                          g_free(id_with_lang);
-                          g_free(name_with_lang);
+                        IBusEngineDesc * engine_desc = get_engine_for_language(
+                          keyboard, details, kbd_details, kmp_dir, language->id, language->name);
+                        if (engine_desc) {
+                          engines = g_list_append(engines, engine_desc);
                         }
                     }
                 }
                 else {
+                    gchar *abs_kmx = g_strjoin("/", kmp_dir, keyboard->kmx_file, NULL);
                     g_message("adding engine %s", abs_kmx);
                     engines = g_list_append (engines,
                         ibus_keyman_engine_desc_new (abs_kmx, // kmx full path
@@ -250,10 +288,11 @@ ibus_keyman_add_engines(GList * engines, GList * kmpdir_list)
                                 keyman_get_icon_file(abs_kmx), // icon full path
                                 "us", // layout defaulting to us (en-US)
                                 keyboard->version));
+                    g_free(abs_kmx);
                 }
+                // TODO: add custom keyboards here!
                 free_keyboard_details(kbd_details);
                 g_free(kbd_details);
-                g_free(abs_kmx);
             }
         }
         free_kmp_details(details);

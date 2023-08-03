@@ -266,6 +266,64 @@ test_keyman_get_custom_keyboards__empty() {
   delete_kbds_key();
 }
 
+void
+test_keyman_get_custom_keyboard_dictionary__values() {
+  // Initialize
+  gchar* keyboards[] = {"fr:/tmp/test/test.kmx", "en:/tmp/foo/foo.kmx", "fr:/tmp/foo/foo.kmx", NULL};
+  set_kbds_key(keyboards);
+
+  // Execute
+  GHashTable* result = keyman_get_custom_keyboard_dictionary();
+
+  // Verify
+  gchar* expected1[] = { "fr:/tmp/test/test.kmx", NULL};
+  gchar* expected2[] = { "en:/tmp/foo/foo.kmx", "fr:/tmp/foo/foo.kmx", NULL};
+  gchar* value = g_hash_table_lookup(result, "/tmp/test/test.kmx");
+  g_assert_cmpstrv(value, expected1);
+  value = g_hash_table_lookup(result, "/tmp/foo/foo.kmx");
+  g_assert_cmpstrv(value, expected2);
+
+  // Cleanup
+  g_hash_table_destroy(result);
+  g_free(result);
+  delete_kbds_key();
+}
+
+void
+test_keyman_get_custom_keyboard_dictionary__empty() {
+  // Initialize
+  gchar* keyboards[] = {NULL};
+  set_kbds_key(keyboards);
+
+  // Execute
+  GHashTable* result = keyman_get_custom_keyboard_dictionary();
+
+  // Verify
+  g_assert_null(result);
+
+  // Cleanup
+  g_hash_table_destroy(result);
+  g_free(result);
+  delete_kbds_key();
+}
+
+void
+test_keyman_get_custom_keyboard_dictionary__null() {
+  // Initialize
+  delete_kbds_key();
+
+  // Execute
+  GHashTable* result = keyman_get_custom_keyboard_dictionary();
+
+  // Verify
+  g_assert_null(result);
+
+  // Cleanup
+  g_hash_table_destroy(result);
+  g_free(result);
+  delete_kbds_key();
+}
+
 int
 main(int argc, char* argv[]) {
   gtk_init(&argc, &argv);
@@ -285,6 +343,10 @@ main(int argc, char* argv[]) {
   g_test_add_func("/keymanutil/keyman_get_custom_keyboards/value", test_keyman_get_custom_keyboards__value);
   g_test_add_func("/keymanutil/keyman_get_custom_keyboards/no_key", test_keyman_get_custom_keyboards__no_key);
   g_test_add_func("/keymanutil/keyman_get_custom_keyboards/empty", test_keyman_get_custom_keyboards__empty);
+
+  g_test_add_func("/keymanutil/keyman_get_custom_keyboard_dictionary/values", test_keyman_get_custom_keyboard_dictionary__values);
+  g_test_add_func("/keymanutil/keyman_get_custom_keyboard_dictionary/empty", test_keyman_get_custom_keyboard_dictionary__empty);
+  g_test_add_func("/keymanutil/keyman_get_custom_keyboard_dictionary/null", test_keyman_get_custom_keyboard_dictionary__null);
 
   // Run tests
   int retVal = g_test_run();
