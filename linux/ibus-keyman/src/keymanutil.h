@@ -61,10 +61,16 @@
 #define KEYMAN_ENVIRONMENT_OPTIONS 3
 
 // Path information for Keyman keyboard options in DConf
-#define KEYMAN_DCONF_NAME "com.keyman.options"
-#define KEYMAN_CHILD_DCONF_NAME "com.keyman.options.child"
-#define KEYMAN_DCONF_PATH "/desktop/ibus/keyman/options/"
+#define KEYMAN_DCONF_OPTIONS_NAME "com.keyman.options"
+#define KEYMAN_DCONF_OPTIONS_CHILD_NAME "com.keyman.options.child"
+// TODO: migrate to /com/keyman/options to better follow Gnome recommmendations
+// (https://docs.gtk.org/gio/class.Settings.html)
+#define KEYMAN_DCONF_OPTIONS_PATH "/desktop/ibus/keyman/options/"
 #define KEYMAN_DCONF_OPTIONS_KEY "options"
+
+#define KEYMAN_DCONF_ENGINE_NAME "com.keyman.engine"
+#define KEYMAN_DCONF_ENGINE_PATH "/com/keyman/engine/"
+#define KEYMAN_DCONF_KEYBOARDS_KEY "additional-keyboards"
 
 G_BEGIN_DECLS
 
@@ -109,6 +115,15 @@ void keyman_put_options_todconf
                                              gchar *keyboard_id,
                                              gchar *option_key,
                                              gchar *option_value);
+
+// Get the list of user-added keyboards with arbitrary language from DConf.
+gchar** keyman_get_custom_keyboards();
+
+// Write the list of user-added keyboards with arbitrary language to DConf.
+//
+// Parameter:
+// keyboards  Null-terminated array of strings naming the user-added keyboard
+void keyman_set_custom_keyboards(gchar **keyboards);
 
 G_END_DECLS
 
