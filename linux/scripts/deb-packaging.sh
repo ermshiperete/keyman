@@ -14,7 +14,12 @@ builder_describe \
   "dependencies              Install dependencies as found in debian/control" \
   "source+                   Build source package" \
   "verify                    Verify API" \
-  "--gha                     Build from GitHub Action"
+  "--gha                     Build from GitHub Action" \
+  "--src-pkg=SRC_PKG         Path and name of source package (for verify action)" \
+  "--bin-pkg=BIN_PKG         Path and name of binary Debian package (for verify action)" \
+  "--pkg-version=PKG_VERSION The version of the Debian package (for verify action)" \
+  "--git-ref=GIT_REF         The ref of the HEAD commit, e.g. HEAD of the PR branch (for verify action)" \
+  "--git-base=GIT_BASE       The ref of the base commit, e.g. HEAD of the master branch (for verify action)"
 
 builder_parse "$@"
 
@@ -50,19 +55,37 @@ source_action() {
   mv builddebs/* "${OUTPUT_PATH:-..}"
 }
 
+check_api_not_changed() {
+  # Checks that the API did not change compared to what's documented in the .symbols file
+  tmpDir=$(mktemp -d)
+  dpkg -x "${BIN_PKG}" "$tmpDir"
+  cd debian
+  dpkg-gensymbols -v"${PKG_VERSION}" -p"${PKG_NAME}" -e"${tmpDir}"/usr/lib/x86_64-linux-gnu/"${LIB_NAME}".so* -O"${PKG_NAME}.symbols" -c4
+  echo ":heavy_check_mark: ${LIB_NAME} API didn't change" >&2
+}
+
+check_updated_version_number() {
+  # Checks that the version number got updated in the .symbols file if it got changed
+  if [[ $(git rev-parse "${GIT_REF}":"linux/debian/${PKG_NAME}.symbols") != $(git rev-parse "${GIT_BASE}":"linux/debian/${PKG_NAME}.symbols") ]]; then
+      # .symbols file changed, now check if the version got updated as well
+      if ! git log -p -1 -- "linux/debian/${PKG_NAME}.symbols" | grep -q "${PKG_VERSION}"; then
+      echo ":x: Error: ${PKG_NAME}.symbols file got changed without changing the version number of the symbol" >&2
+      exit 1
+      fi
+      echo ":heavy_check_mark: ${PKG_NAME}.symbols file got updated with version number" >&2
+  fi
+}
+
 verify_action() {
   tar xf "${SRC_PKG}"
   PKG_NAME=libkeymancore
   LIB_NAME=libkeymancore
   if [ ! -f debian/${PKG_NAME}.symbols ]; then
     echo ":warning: Missing ${PKG_NAME}.symbols file" >&2
-  else
-    tmpDir=$(mktemp -d)
-    dpkg -x "${BIN_PKG}" "$tmpDir"
-    cd debian
-    dpkg-gensymbols -v"${PKG_VERSION}" -p${PKG_NAME} -e"${tmpDir}"/usr/lib/x86_64-linux-gnu/${LIB_NAME}.so* -O${PKG_NAME}.symbols -c4
-    echo ":heavy_check_mark: ${LIB_NAME} API didn't change" >&2
+    exit 0
   fi
+  check_api_not_changed
+  check_updated_version_number
 }
 
 builder_run_action dependencies  dependencies_action
