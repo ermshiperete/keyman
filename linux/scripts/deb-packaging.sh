@@ -62,17 +62,20 @@ check_api_not_changed() {
   cd debian
   dpkg-gensymbols -v"${PKG_VERSION}" -p"${PKG_NAME}" -e"${tmpDir}"/usr/lib/x86_64-linux-gnu/"${LIB_NAME}".so* -O"${PKG_NAME}.symbols" -c4
   echo ":heavy_check_mark: ${LIB_NAME} API didn't change" >&2
+  builder_echo green ":heavy_check_mark: ${LIB_NAME} API didn't change"
 }
 
 check_updated_version_number() {
   # Checks that the version number got updated in the .symbols file if it got changed
   if [[ $(git rev-parse "${GIT_REF}":"linux/debian/${PKG_NAME}.symbols") != $(git rev-parse "${GIT_BASE}":"linux/debian/${PKG_NAME}.symbols") ]]; then
-      # .symbols file changed, now check if the version got updated as well
-      if ! git log -p -1 -- "linux/debian/${PKG_NAME}.symbols" | grep -q "${PKG_VERSION}"; then
+    # .symbols file changed, now check if the version got updated as well
+    if ! git log -p -1 -- "linux/debian/${PKG_NAME}.symbols" | grep -q "${PKG_VERSION}"; then
       echo ":x: Error: ${PKG_NAME}.symbols file got changed without changing the version number of the symbol" >&2
+      builder_echo error ":x: Error: ${PKG_NAME}.symbols file got changed without changing the version number of the symbol"
       exit 1
-      fi
-      echo ":heavy_check_mark: ${PKG_NAME}.symbols file got updated with version number" >&2
+    fi
+    echo ":heavy_check_mark: ${PKG_NAME}.symbols file got updated with version number" >&2
+    builder_echo green ":heavy_check_mark: ${PKG_NAME}.symbols file got updated with version number"
   fi
 }
 
@@ -82,10 +85,13 @@ verify_action() {
   LIB_NAME=libkeymancore
   if [ ! -f debian/${PKG_NAME}.symbols ]; then
     echo ":warning: Missing ${PKG_NAME}.symbols file" >&2
+    builder_echo warning ":warning: Missing ${PKG_NAME}.symbols file"
     exit 0
   fi
   check_api_not_changed
+  builder_echo "after check_api_not_changed"
   check_updated_version_number
+  builder_echo "after check_updated_version_number"
 }
 
 builder_run_action dependencies  dependencies_action
