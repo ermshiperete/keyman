@@ -11,15 +11,15 @@ THIS_SCRIPT="$(readlink -f "${BASH_SOURCE[0]}")"
 
 builder_describe \
   "Helper for building Debian packages." \
-  "dependencies              Install dependencies as found in debian/control" \
-  "source+                   Build source package" \
-  "verify                    Verify API" \
-  "--gha                     Build from GitHub Action" \
-  "--src-pkg=SRC_PKG         Path and name of source package (for verify action)" \
-  "--bin-pkg=BIN_PKG         Path and name of binary Debian package (for verify action)" \
-  "--pkg-version=PKG_VERSION The version of the Debian package (for verify action)" \
-  "--git-ref=GIT_REF         The ref of the HEAD commit, e.g. HEAD of the PR branch (for verify action)" \
-  "--git-base=GIT_BASE       The ref of the base commit, e.g. HEAD of the master branch (for verify action)"
+  "dependencies               Install dependencies as found in debian/control" \
+  "source+                    Build source package" \
+  "verify                     Verify API" \
+  "--gha                      Build from GitHub Action" \
+  "--src-pkg=SRC_PKG          Path and name of source package (for verify action)" \
+  "--bin-pkg=BIN_PKG          Path and name of binary Debian package (for verify action)" \
+  "--pkg-version=PKG_VERSION  The version of the Debian package (for verify action)" \
+  "--git-ref=GIT_REF          The ref of the HEAD commit, e.g. HEAD of the PR branch (for verify action)" \
+  "--git-base=GIT_BASE        The ref of the base commit, e.g. HEAD of the master branch (for verify action)"
 
 builder_parse "$@"
 
@@ -32,6 +32,9 @@ else
   START_STEP="${COLOR_GREEN}"
   END_STEP=""
 fi
+
+builder_echo "PKG_VERSION=${PKG_VERSION}"
+
 
 dependencies_action() {
   sudo mk-build-deps --install --tool='apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends --yes' debian/control
@@ -97,9 +100,10 @@ check_updated_version_number() {
     # .symbols file changed, now check if the package version got updated as well
     # We don't check that all changes in that file have an updated package version
     # which we hope gets flagged in code review.
+    builder_echo "PKG_VERSION=${PKG_VERSION}"
     if ! git log -p -1 -- "linux/debian/${PKG_NAME}.symbols" | grep -q "${PKG_VERSION}"; then
       output_error "${PKG_NAME}.symbols file got changed without changing the version number of the symbol"
-      exit 1
+      EXIT_CODE=1
     fi
     output_ok "${PKG_NAME}.symbols file got updated with version number"
   else
@@ -111,7 +115,7 @@ get_api_version_in_symbols_file() {
   # Extract 1 from "libkeymancore.so.1 libkeymancore #MINVER#"
   local firstline
   firstline=$(head -1 "linux/debian/${PKG_NAME}.symbols")
-  firstline="${firstline#${PKG_NAME}.so.}"
+  firstline="${firstline#"${PKG_NAME}".so.}"
   firstline="${firstline%% *}"
   echo "$firstline"
 }
@@ -149,7 +153,7 @@ check_for_major_api_changes() {
     output_log "Major API change: ${DELETED} lines deleted and ${MODIFIED} lines modified"
     if ! is_api_version_updated; then
       output_error "Major API change without updating API version number in ${PKG_NAME}.symbols file"
-      exit 2
+      EXIT_CODE=2
     else
       output_ok "API version number got updated in ${PKG_NAME}.symbols file after major API change"
     fi
@@ -174,7 +178,7 @@ check_for_api_version_consistency() {
     output_ok "API version in .symbols file and in CORE_API_VERSION.md is the same"
   else
     output_error "API version in .symbols file and in CORE_API_VERSION.md is different"
-    exit 3
+    EXIT_CODE=3
   fi
 }
 
@@ -187,10 +191,12 @@ verify_action() {
     exit 0
   fi
 
+  EXIT_CODE=0
   check_api_not_changed
   check_updated_version_number
   check_for_major_api_changes
   check_for_api_version_consistency
+  exit $EXIT_CODE
 }
 
 builder_run_action dependencies  dependencies_action
