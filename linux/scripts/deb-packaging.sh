@@ -33,9 +33,6 @@ else
   END_STEP=""
 fi
 
-builder_echo "SRC_PKG=${SRC_PKG:-};PKG_VERSION=${PKG_VERSION:-}"
-
-
 dependencies_action() {
   sudo mk-build-deps --install --tool='apt-get -o Debug::pkgProblemResolver=yes --no-install-recommends --yes' debian/control
 }
@@ -101,6 +98,9 @@ check_updated_version_number() {
     # We don't check that all changes in that file have an updated package version
     # which we hope gets flagged in code review.
     builder_echo "PKG_VERSION=${PKG_VERSION}"
+    builder_echo "git log -1: $(git log -1)"
+    builder_echo "git log -p -1 ${PKG_NAME}.symbols: $(git log -p -1 -- "linux/debian/${PKG_NAME}.symbols")"
+
     if ! git log -p -1 -- "linux/debian/${PKG_NAME}.symbols" | grep -q "${PKG_VERSION}"; then
       output_error "${PKG_NAME}.symbols file got changed without changing the version number of the symbol"
       EXIT_CODE=1
@@ -142,12 +142,16 @@ check_for_major_api_changes() {
     return
   fi
 
+  output_log "git diff \"${GIT_BASE}\"..\"${GIT_REF}\" -- \"linux/debian/${PKG_NAME}.symbols\" | diffstat -m -t | tail -1"
+
   WHAT_CHANGED=$(git diff "${GIT_BASE}".."${GIT_REF}" -- "linux/debian/${PKG_NAME}.symbols" | diffstat -m -t | tail -1)
 
   IFS=',' read -r -a CHANGES <<< "${WHAT_CHANGED}"
-  INSERTED=${CHANGES[0]}
-  DELETED=${CHANGES[1]}
-  MODIFIED=${CHANGES[2]}
+  INSERTED="${CHANGES[0]}"
+  DELETED="${CHANGES[1]}"
+  MODIFIED="${CHANGES[2]}"
+
+  output_log "INSERTED=${INSERTED}, DELETED=${DELETED}, MODIFIED=${MODIFIED}"
 
   if (( DELETED > 0 )) || (( MODIFIED > 0 )); then
     output_log "Major API change: ${DELETED} lines deleted and ${MODIFIED} lines modified"
