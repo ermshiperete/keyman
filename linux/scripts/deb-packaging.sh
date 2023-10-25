@@ -67,7 +67,7 @@ check_api_not_changed() {
 
 check_updated_version_number() {
   # Checks that the version number got updated in the .symbols file if it got changed
-  if [[ $(git rev-parse "${GIT_REF}":"linux/debian/${PKG_NAME}.symbols") != $(git rev-parse "${GIT_BASE}":"linux/debian/${PKG_NAME}.symbols") ]]; then
+  if [[ $(git rev-list -1 "${GIT_REF}" -- "linux/debian/${PKG_NAME}.symbols") != $(git rev-list -1 "${GIT_BASE}" -- "linux/debian/${PKG_NAME}.symbols") ]]; then
     # .symbols file changed, now check if the version got updated as well
     if ! git log -p -1 -- "linux/debian/${PKG_NAME}.symbols" | grep -q "${PKG_VERSION}"; then
       echo ":x: ${PKG_NAME}.symbols file got changed without changing the version number of the symbol" >&2
@@ -89,9 +89,7 @@ verify_action() {
     exit 0
   fi
   check_api_not_changed
-  builder_echo "after check_api_not_changed"
   check_updated_version_number
-  builder_echo "after check_updated_version_number"
 }
 
 builder_run_action dependencies  dependencies_action
