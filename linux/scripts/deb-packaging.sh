@@ -55,27 +55,126 @@ source_action() {
   mv builddebs/* "${OUTPUT_PATH:-..}"
 }
 
+output_log() {
+  echo "$1" >&2
+  builder_echo "$1"
+}
+
+output_ok() {
+  echo ":heavy_check_mark: $1" >&2
+  output_ok "$1"
+}
+
+output_warning() {
+  echo ":warning: $1" >&2
+  builder_echo warning "WARNING: $1"
+}
+
+output_error() {
+  echo ":x: $1" >&2
+  builder_echo error "ERROR: $1"
+}
+
 check_api_not_changed() {
   # Checks that the API did not change compared to what's documented in the .symbols file
   tmpDir=$(mktemp -d)
   dpkg -x "${BIN_PKG}" "$tmpDir"
   cd debian
   dpkg-gensymbols -v"${PKG_VERSION}" -p"${PKG_NAME}" -e"${tmpDir}"/usr/lib/x86_64-linux-gnu/"${LIB_NAME}".so* -O"${PKG_NAME}.symbols" -c4
-  echo ":heavy_check_mark: ${LIB_NAME} API didn't change" >&2
-  builder_echo green "OK ${LIB_NAME} API didn't change"
+  output_ok "${LIB_NAME} API didn't change"
+}
+
+is_symbols_file_changed() {
+  if [[ $(git rev-list -1 "${GIT_REF}" -- "linux/debian/${PKG_NAME}.symbols") != $(git rev-list -1 "${GIT_BASE}" -- "linux/debian/${PKG_NAME}.symbols") ]]; then
+    return 1
+  fi
+  return 0
 }
 
 check_updated_version_number() {
-  # Checks that the version number got updated in the .symbols file if it got changed
-  if [[ $(git rev-list -1 "${GIT_REF}" -- "linux/debian/${PKG_NAME}.symbols") != $(git rev-list -1 "${GIT_BASE}" -- "linux/debian/${PKG_NAME}.symbols") ]]; then
-    # .symbols file changed, now check if the version got updated as well
+  # Checks that the package version number got updated in the .symbols file if it got changed
+  if is_symbols_file_changed; then
+    # .symbols file changed, now check if the package version got updated as well
+    # We don't check that all changes in that file have an updated package version
+    # which we hope gets flagged in code review.
     if ! git log -p -1 -- "linux/debian/${PKG_NAME}.symbols" | grep -q "${PKG_VERSION}"; then
-      echo ":x: ${PKG_NAME}.symbols file got changed without changing the version number of the symbol" >&2
-      builder_echo error "Error: ${PKG_NAME}.symbols file got changed without changing the version number of the symbol"
+      output_error "${PKG_NAME}.symbols file got changed without changing the version number of the symbol"
       exit 1
     fi
-    echo ":heavy_check_mark: ${PKG_NAME}.symbols file got updated with version number" >&2
-    builder_echo green "OK ${PKG_NAME}.symbols file got updated with version number"
+    output_ok "${PKG_NAME}.symbols file got updated with version number"
+  else
+    output_ok "${PKG_NAME}.symbols file didn't change"
+  fi
+}
+
+get_api_version_in_symbols_file() {
+  # Extract 1 from "libkeymancore.so.1 libkeymancore #MINVER#"
+  local firstline
+  firstline=$(head -1 "linux/debian/${PKG_NAME}.symbols")
+  firstline="${firstline#${PKG_NAME}.so.}"
+  firstline="${firstline%% *}"
+  echo "$firstline"
+}
+
+is_api_version_updated() {
+  local NEW_VERSION OLD_VERSION
+  git checkout "${GIT_REF}" -- "linux/debian/${PKG_NAME}.symbols"
+  NEW_VERSION=$(get_api_version_in_symbols_file)
+  git checkout "${GIT_BASE}" -- "linux/debian/${PKG_NAME}.symbols"
+  OLD_VERSION=$(get_api_version_in_symbols_file)
+  git checkout "${GIT_REF}" -- "linux/debian/${PKG_NAME}.symbols"
+  if (( NEW_VERSION > OLD_VERSION )); then
+    return 0
+  fi
+  return 1
+}
+
+check_for_major_api_changes() {
+  # Checks that API version number gets updated if API changes
+  local WHAT_CHANGED CHANGES INSERTED DELETED MODIFIED
+
+  if ! is_symbols_file_changed; then
+    output_ok "No major API change"
+    return
+  fi
+
+  WHAT_CHANGED=$(git diff "${GIT_BASE}".."${GIT_REF}" -- "linux/debian/${PKG_NAME}.symbols" | diffstat -m -t | tail -1)
+
+  IFS=',' read -r -a CHANGES <<< "${WHAT_CHANGED}"
+  INSERTED=${CHANGES[0]}
+  DELETED=${CHANGES[1]}
+  MODIFIED=${CHANGES[2]}
+
+  if (( DELETED > 0 )) || (( MODIFIED > 0 )); then
+    output_log "Major API change: ${DELETED} lines deleted and ${MODIFIED} lines modified"
+    if ! is_api_version_updated; then
+      output_error "Major API change without updating API version number in ${PKG_NAME}.symbols file"
+      exit 2
+    else
+      output_ok "API version number got updated in ${PKG_NAME}.symbols file after major API change"
+    fi
+  elif (( INSERTED > 0 )); then
+    output_ok "Minor API change: ${INSERTED} lines added"
+    # We currently don't check version number for minor API changes
+  else
+    output_ok "No major API change"
+  fi
+}
+
+check_for_api_version_consistency() {
+  # Checks that the (major) API version number in the .symbols file and
+  # in CORE_API_VERSION.md are the same
+  local symbols_version api_version
+  symbols_version=$(get_api_version_in_symbols_file)
+  api_version=$(cat core/CORE_API_VERSION.md)
+  # Extract major version number from "1.0.0"
+  api_version=${api_version%%.*}
+
+  if (( symbols_version == api_version )); then
+    output_ok "API version in .symbols file and in CORE_API_VERSION.md is the same"
+  else
+    output_error "API version in .symbols file and in CORE_API_VERSION.md is different"
+    exit 3
   fi
 }
 
@@ -84,12 +183,14 @@ verify_action() {
   PKG_NAME=libkeymancore
   LIB_NAME=libkeymancore
   if [ ! -f debian/${PKG_NAME}.symbols ]; then
-    echo ":warning: Missing ${PKG_NAME}.symbols file" >&2
-    builder_echo warning ":warning: Missing ${PKG_NAME}.symbols file"
+    output_warning "Missing ${PKG_NAME}.symbols file"
     exit 0
   fi
+
   check_api_not_changed
   check_updated_version_number
+  check_for_major_api_changes
+  check_for_api_version_consistency
 }
 
 builder_run_action dependencies  dependencies_action
