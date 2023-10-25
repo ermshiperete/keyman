@@ -33,7 +33,7 @@ else
   END_STEP=""
 fi
 
-builder_echo "PKG_VERSION=${PKG_VERSION}"
+builder_echo "SRC_PKG=${SRC_PKG:-};PKG_VERSION=${PKG_VERSION:-}"
 
 
 dependencies_action() {
