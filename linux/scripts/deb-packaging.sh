@@ -62,7 +62,7 @@ output_log() {
 
 output_ok() {
   echo ":heavy_check_mark: $1" >&2
-  output_ok "$1"
+  builder_echo green "OK: $1"
 }
 
 output_warning() {
