@@ -6,9 +6,6 @@ on:
       ref:
         description: 'For a PR `refs/pull/<PR-NUMBER>/merge`'
         required: true
-      headRef:
-        description: 'The ref of HEAD. For a PR `refs/pull/<PR-NUMBER>/head`.'
-        required: true
       branch:
         description: 'The branch. For a PR `PR-<PR-NUMBER>`.'
         required: true
@@ -268,7 +265,7 @@ jobs:
           --src-pkg "${GITHUB_WORKSPACE}/artifacts/keyman-srcpkg/keyman_${{ needs.sourcepackage.outputs.VERSION }}-1.debian.tar.xz" \
           --bin-pkg "${GITHUB_WORKSPACE}/artifacts/keyman-binarypkgs/${PKG_NAME}_${{ needs.sourcepackage.outputs.VERSION }}-1${{ needs.sourcepackage.outputs.PRERELEASE_TAG }}+jammy1_amd64.deb" \
           --pkg-version "${{ needs.sourcepackage.outputs.VERSION }}" \
-          --git-ref "${{ github.event.inputs.headRef }}" \
+          --git-ref "${{ github.sha }}" \
           --git-base "${{ github.event.inputs.baseRef }}" \
           verify 2>> $GITHUB_STEP_SUMMARY
 
