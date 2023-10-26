@@ -87,9 +87,9 @@ check_api_not_changed() {
 
 is_symbols_file_changed() {
   local CHANGED_REF CHANGED_BASE
-  CHANGED_REF=$(git rev-list -1 "${GIT_REF}" -- "debian/${PKG_NAME}.symbols")
-  CHANGED_BASE=$(git rev-list -1 "${GIT_BASE}" -- "debian/${PKG_NAME}.symbols")
-  if [[ "${CHANGED_REF}" != "${CHANGED_BASE}" ]]; then
+  CHANGED_REF=$(git rev-parse "${GIT_REF}":"linux/debian/${PKG_NAME}.symbols")
+  CHANGED_BASE=$(git rev-parse "${GIT_BASE}":"linux/debian/${PKG_NAME}.symbols")
+  if [[ "${CHANGED_REF}" == "${CHANGED_BASE}" ]]; then
     return 1
   fi
   return 0
@@ -97,6 +97,7 @@ is_symbols_file_changed() {
 
 check_updated_version_number() {
   # Checks that the package version number got updated in the .symbols file if it got changed
+  # shellcheck disable=SC2310
   if is_symbols_file_changed; then
     # .symbols file changed, now check if the package version got updated as well
     # We don't check that all changes in that file have an updated package version
