@@ -265,7 +265,6 @@ jobs:
         PKG_NAME=libkeymancore
         ./scripts/deb-packaging.sh \
           --gha \
-          --src-pkg "${GITHUB_WORKSPACE}/artifacts/keyman-srcpkg/keyman_${{ needs.sourcepackage.outputs.VERSION }}-1.debian.tar.xz" \
           --bin-pkg "${GITHUB_WORKSPACE}/artifacts/keyman-binarypkgs/${PKG_NAME}_${{ needs.sourcepackage.outputs.VERSION }}-1${{ needs.sourcepackage.outputs.PRERELEASE_TAG }}+jammy1_amd64.deb" \
           --pkg-version "${{ needs.sourcepackage.outputs.VERSION }}" \
           --git-ref "${{ github.sha }}" \

@@ -17,7 +17,6 @@ builder_describe \
   "source+                    Build source package" \
   "verify                     Verify API" \
   "--gha                      Build from GitHub Action" \
-  "--src-pkg=SRC_PKG          Path and name of source package (for verify action)" \
   "--bin-pkg=BIN_PKG          Path and name of binary Debian package (for verify action)" \
   "--pkg-version=PKG_VERSION  The version of the Debian package (for verify action)" \
   "--git-ref=GIT_REF          The ref of the HEAD commit, e.g. HEAD of the PR branch (for verify action)" \
@@ -198,7 +197,6 @@ check_for_api_version_consistency() {
 }
 
 verify_action() {
-#   tar xf "${SRC_PKG}"
   PKG_NAME=libkeymancore
   LIB_NAME=libkeymancore
   if [[ ! -f debian/${PKG_NAME}.symbols ]]; then
