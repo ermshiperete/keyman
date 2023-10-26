@@ -152,7 +152,7 @@ check_for_major_api_changes() {
   MODIFIED="${CHANGES[2]}"
 
   if (( DELETED > 0 )) || (( MODIFIED > 0 )); then
-    output_log "Major API change: ${DELETED} lines deleted and ${MODIFIED} lines modified"
+    builder_echo "Major API change: ${DELETED} lines deleted and ${MODIFIED} lines modified"
     # shellcheck disable=2310
     if ! is_api_version_updated; then
       output_error "Major API change without updating API version number in ${PKG_NAME}.symbols file"
