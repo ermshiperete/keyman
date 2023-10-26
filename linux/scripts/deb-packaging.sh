@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# shellcheck disable=SC2154 (variables are set in build-utils.sh)
+# shellcheck disable=SC2154 # (variables are set in build-utils.sh)
 # Actions for creating a Debian source package. Used by deb-packaging.yml GHA.
 
 set -eu
@@ -184,7 +184,7 @@ check_for_api_version_consistency() {
   # in CORE_API_VERSION.md are the same
   local symbols_version api_version
   symbols_version=$(get_api_version_in_symbols_file)
-  api_version=$(cat core/CORE_API_VERSION.md)
+  api_version=$(cat ../core/CORE_API_VERSION.md)
   # Extract major version number from "1.0.0"
   api_version=${api_version%%.*}
 
