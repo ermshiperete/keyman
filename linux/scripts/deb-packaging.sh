@@ -87,8 +87,8 @@ check_api_not_changed() {
 
 is_symbols_file_changed() {
   local CHANGED_REF CHANGED_BASE
-  CHANGED_REF=$(git rev-list -1 "${GIT_REF}" -- "linux/debian/${PKG_NAME}.symbols")
-  CHANGED_BASE=$(git rev-list -1 "${GIT_BASE}" -- "linux/debian/${PKG_NAME}.symbols")
+  CHANGED_REF=$(git rev-list -1 "${GIT_REF}" -- "debian/${PKG_NAME}.symbols")
+  CHANGED_BASE=$(git rev-list -1 "${GIT_BASE}" -- "debian/${PKG_NAME}.symbols")
   if [[ "${CHANGED_REF}" != "${CHANGED_BASE}" ]]; then
     return 1
   fi
@@ -105,10 +105,10 @@ check_updated_version_number() {
     builder_echo "git log -1: $(git log -1)"
     builder_echo "pwd: $(pwd)"
     builder_echo "ls -al: $(ls -al)"
-    builder_echo "ls -al ${PKG_NAME}.symbols: $(ls -al "linux/debian/${PKG_NAME}.symbols")"
-    builder_echo "git log -p -1 ${PKG_NAME}.symbols: $(git log -p -1 -- "linux/debian/${PKG_NAME}.symbols")"
+    builder_echo "ls -al ${PKG_NAME}.symbols: $(ls -al "debian/${PKG_NAME}.symbols")"
+    builder_echo "git log -p -1 ${PKG_NAME}.symbols: $(git log -p -1 -- "debian/${PKG_NAME}.symbols")"
 
-    if ! git log -p -1 -- "linux/debian/${PKG_NAME}.symbols" | grep -q "${PKG_VERSION}"; then
+    if ! git log -p -1 -- "debian/${PKG_NAME}.symbols" | grep -q "${PKG_VERSION}"; then
       output_error "${PKG_NAME}.symbols file got changed without changing the version number of the symbol"
       EXIT_CODE=1
     fi
@@ -121,7 +121,7 @@ check_updated_version_number() {
 get_api_version_in_symbols_file() {
   # Extract 1 from "libkeymancore.so.1 libkeymancore #MINVER#"
   local firstline
-  firstline=$(head -1 "linux/debian/${PKG_NAME}.symbols")
+  firstline=$(head -1 "debian/${PKG_NAME}.symbols")
   firstline="${firstline#"${PKG_NAME}".so.}"
   firstline="${firstline%% *}"
   echo "${firstline}"
@@ -129,11 +129,11 @@ get_api_version_in_symbols_file() {
 
 is_api_version_updated() {
   local NEW_VERSION OLD_VERSION
-  git checkout "${GIT_REF}" -- "linux/debian/${PKG_NAME}.symbols"
+  git checkout "${GIT_REF}" -- "debian/${PKG_NAME}.symbols"
   NEW_VERSION=$(get_api_version_in_symbols_file)
-  git checkout "${GIT_BASE}" -- "linux/debian/${PKG_NAME}.symbols"
+  git checkout "${GIT_BASE}" -- "debian/${PKG_NAME}.symbols"
   OLD_VERSION=$(get_api_version_in_symbols_file)
-  git checkout "${GIT_REF}" -- "linux/debian/${PKG_NAME}.symbols"
+  git checkout "${GIT_REF}" -- "debian/${PKG_NAME}.symbols"
   if (( NEW_VERSION > OLD_VERSION )); then
     return 0
   fi
@@ -150,10 +150,10 @@ check_for_major_api_changes() {
     return
   fi
 
-  output_log "git diff \"${GIT_BASE}\"..\"${GIT_REF}\" -- \"linux/debian/${PKG_NAME}.symbols\" | diffstat -m -t | tail -1"
-  output_log "$(git diff \"${GIT_BASE}\"..\"${GIT_REF}\" -- \"linux/debian/${PKG_NAME}.symbols\")"
+  output_log "git diff \"${GIT_BASE}\"..\"${GIT_REF}\" -- \"debian/${PKG_NAME}.symbols\" | diffstat -m -t | tail -1"
+  output_log "$(git diff \"${GIT_BASE}\"..\"${GIT_REF}\" -- \"debian/${PKG_NAME}.symbols\")"
 
-  WHAT_CHANGED=$(git diff "${GIT_BASE}".."${GIT_REF}" -- "linux/debian/${PKG_NAME}.symbols" | diffstat -m -t | tail -1)
+  WHAT_CHANGED=$(git diff "${GIT_BASE}".."${GIT_REF}" -- "debian/${PKG_NAME}.symbols" | diffstat -m -t | tail -1)
 
   IFS=',' read -r -a CHANGES <<< "${WHAT_CHANGED}"
   INSERTED="${CHANGES[0]}"
