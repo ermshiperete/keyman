@@ -105,8 +105,9 @@ check_updated_version_number() {
     if ! git log -p -1 -- "debian/${PKG_NAME}.symbols" | grep -q "${PKG_VERSION}"; then
       output_error "${PKG_NAME}.symbols file got changed without changing the package version number of the symbol"
       EXIT_CODE=1
+    else
+      output_ok "${PKG_NAME}.symbols file got updated with package version number"
     fi
-    output_ok "${PKG_NAME}.symbols file got updated with package version number"
   else
     output_ok "${PKG_NAME}.symbols file didn't change"
   fi
