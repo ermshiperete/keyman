@@ -100,15 +100,8 @@ check_updated_version_number() {
   # shellcheck disable=SC2310
   if is_symbols_file_changed; then
     # .symbols file changed, now check if the package version got updated as well
-    # We don't check that all changes in that file have an updated package version
-    # which we hope gets flagged in code review.
-    builder_echo "PKG_VERSION=${PKG_VERSION}"
-    builder_echo "git log -1: $(git log -1)"
-    builder_echo "pwd: $(pwd)"
-    builder_echo "ls -al: $(ls -al)"
-    builder_echo "ls -al ${PKG_NAME}.symbols: $(ls -al "debian/${PKG_NAME}.symbols")"
-    builder_echo "git log -p -1 ${PKG_NAME}.symbols: $(git log -p -1 -- "debian/${PKG_NAME}.symbols")"
-
+    # Note: We don't check that ALL changes in that file have an updated package version -
+    # we hope this gets flagged in code review.
     if ! git log -p -1 -- "debian/${PKG_NAME}.symbols" | grep -q "${PKG_VERSION}"; then
       output_error "${PKG_NAME}.symbols file got changed without changing the version number of the symbol"
       EXIT_CODE=1
@@ -152,7 +145,7 @@ check_for_major_api_changes() {
   fi
 
   output_log "git diff \"${GIT_BASE}\"..\"${GIT_REF}\" -- \"debian/${PKG_NAME}.symbols\" | diffstat -m -t | tail -1"
-  output_log "$(git diff \"${GIT_BASE}\"..\"${GIT_REF}\" -- \"debian/${PKG_NAME}.symbols\")"
+  git diff "${GIT_BASE}".."${GIT_REF}" -- "debian/${PKG_NAME}.symbols"
 
   WHAT_CHANGED=$(git diff "${GIT_BASE}".."${GIT_REF}" -- "debian/${PKG_NAME}.symbols" | diffstat -m -t | tail -1)
 
