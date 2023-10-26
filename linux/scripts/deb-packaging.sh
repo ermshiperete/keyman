@@ -198,7 +198,7 @@ check_for_api_version_consistency() {
 }
 
 verify_action() {
-  tar xf "${SRC_PKG}"
+#   tar xf "${SRC_PKG}"
   PKG_NAME=libkeymancore
   LIB_NAME=libkeymancore
   if [[ ! -f debian/${PKG_NAME}.symbols ]]; then
