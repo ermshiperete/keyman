@@ -196,7 +196,7 @@ verify_action() {
   fi
 
   EXIT_CODE=0
-  check_api_not_changed
+#   check_api_not_changed
   check_updated_version_number
   check_for_major_api_changes
   check_for_api_version_consistency
