@@ -116,17 +116,19 @@ jobs:
     #       debian/***/*
     #   if: always()
 
-  # binary_packages:
-  #   name: Build binary packages
-  #   needs: sourcepackage
-  #   strategy:
-  #     fail-fast: true
-  #     matrix:
-  #       dist: [focal, jammy, lunar, mantic]
-  #       arch: [amd64]
+  binary_packages:
+    name: Build binary packages
+    needs: sourcepackage
+    # strategy:
+    #   fail-fast: true
+    #   matrix:
+    #     dist: [focal, jammy, lunar, mantic]
+    #     arch: [amd64]
 
-  #   runs-on: ubuntu-latest
-  #   steps:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Do something
+        run: echo "Do something"
   #   - name: Download Artifacts
   #     uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a # v3.0.2
   #     with:
