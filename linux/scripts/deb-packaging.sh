@@ -144,17 +144,12 @@ check_for_major_api_changes() {
     return
   fi
 
-  output_log "git diff \"${GIT_BASE}\"..\"${GIT_REF}\" -- \"debian/${PKG_NAME}.symbols\" | diffstat -m -t | tail -1"
-  git diff "${GIT_BASE}".."${GIT_REF}" -- "debian/${PKG_NAME}.symbols"
-
   WHAT_CHANGED=$(git diff "${GIT_BASE}".."${GIT_REF}" -- "debian/${PKG_NAME}.symbols" | diffstat -m -t | tail -1)
 
   IFS=',' read -r -a CHANGES <<< "${WHAT_CHANGED}"
   INSERTED="${CHANGES[0]}"
   DELETED="${CHANGES[1]}"
   MODIFIED="${CHANGES[2]}"
-
-  output_log "INSERTED=${INSERTED}, DELETED=${DELETED}, MODIFIED=${MODIFIED}"
 
   if (( DELETED > 0 )) || (( MODIFIED > 0 )); then
     output_log "Major API change: ${DELETED} lines deleted and ${MODIFIED} lines modified"
