@@ -41,9 +41,65 @@ namespace
       return new null_processor();
     }
   }
-
-
 }
+
+KMX_BOOL LoadBlobFromFile(km_core_path_name fileName, KMX_BYTE** buf) {
+  FILE* fp;
+  KMX_BYTE* filebase;
+
+  DebugLog("Loading file '%s'", fileName);
+  if (!fileName || !buf) {
+    DebugLog("Bad Filename");
+    return FALSE;
+  }
+
+#if defined(_WIN32) || defined(_WIN64)
+  fp = _wfsopen(fileName, L"rb", _SH_DENYWR);
+#else
+  fp = fopen(fileName, "rb");
+#endif
+  if (fp == NULL) {
+    DebugLog("Could not open file");
+    return FALSE;
+  }
+
+  if (fseek(fp, 0, SEEK_END) != 0) {
+    fclose(fp);
+    DebugLog("Could not fseek file");
+    return FALSE;
+  }
+
+  auto sz = ftell(fp);
+  if (sz < 0) {
+    fclose(fp);
+    return FALSE;
+  }
+
+  if (fseek(fp, 0, SEEK_SET) != 0) {
+    fclose(fp);
+    DebugLog("Could not fseek(set) file");
+    return FALSE;
+  }
+
+  *buf = new KMX_BYTE[sz];
+
+  if (!*buf) {
+    fclose(fp);
+    DebugLog("Not allocmem");
+    return FALSE;
+  }
+  filebase = *buf;
+
+  if (fread(filebase, 1, sz, fp) < (size_t)sz) {
+    fclose(fp);
+    DebugLog("Could not read file");
+    return FALSE;
+  }
+
+  fclose(fp);
+  return TRUE;
+}
+
 km_core_status
 km_core_keyboard_load(km_core_path_name kb_path, km_core_keyboard **keyboard)
 {
@@ -65,6 +121,32 @@ km_core_keyboard_load(km_core_path_name kb_path, km_core_keyboard **keyboard)
   {
     return KM_CORE_STATUS_NO_MEM;
   }
+  return KM_CORE_STATUS_OK;
+}
+
+km_core_status
+km_core_keyboard_load_from_blob(void* blob, km_core_keyboard** keyboard) {
+  assert(keyboard);
+  if (!keyboard || !blob)
+    return KM_CORE_STATUS_INVALID_ARGUMENT;
+
+  KMX_BYTE* buf = (KMX_BYTE*)blob;
+  if (*PKMX_DWORD(buf) != KMX_DWORD(FILEID_COMPILED)) {
+    return KM_CORE_STATUS_IO_ERROR;
+  }
+/*
+  try {
+    abstract_processor* kp = processor_factory(kb_path);
+    km_core_status status  = kp->validate();
+    if (status != KM_CORE_STATUS_OK) {
+      delete kp;
+      return status;
+    }
+    *keyboard = static_cast<km_core_keyboard*>(kp);
+  } catch (std::bad_alloc&) {
+    return KM_CORE_STATUS_NO_MEM;
+  }
+  */
   return KM_CORE_STATUS_OK;
 }
 
