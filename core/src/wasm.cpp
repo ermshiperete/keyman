@@ -55,9 +55,18 @@ EMSCRIPTEN_BINDINGS(core_interface) {
 
   em::function("tmp_wasm_attributes", &tmp_wasm_attributes);
 
-  em::function("km_core_keyboard_load_from_blob", &km_core_keyboard_load_from_blob_wasm, em::allow_raw_pointers());
+  em::enum_<km_core_status_codes>("km_core_status_codes")
+      .value("OK", KM_CORE_STATUS_OK)
+      .value("NO_MEM", KM_CORE_STATUS_NO_MEM)
+      .value("IO_ERROR", KM_CORE_STATUS_IO_ERROR)
+      .value("INVALID_ARGUMENT", KM_CORE_STATUS_INVALID_ARGUMENT)
+      .value("KEY_ERROR", KM_CORE_STATUS_KEY_ERROR)
+      .value("INSUFFICENT_BUFFER", KM_CORE_STATUS_INSUFFICENT_BUFFER)
+      .value("INVALID_UTF", KM_CORE_STATUS_INVALID_UTF)
+      .value("INVALID_KEYBOARD", KM_CORE_STATUS_INVALID_KEYBOARD)
+      .value("NOT_IMPLEMENTED", KM_CORE_STATUS_NOT_IMPLEMENTED)
+      .value("OS_ERROR", KM_CORE_STATUS_OS_ERROR);
 
-  // km_core_status km_core_keyboard_load_from_blob(
-  //     const km_core_path_name kb_name, const void* blob, const size_t blob_size, km_core_keyboard** keyboard);
+  em::function("km_core_keyboard_load_from_blob", &km_core_keyboard_load_from_blob_wasm, em::allow_raw_pointers());
 }
 #endif

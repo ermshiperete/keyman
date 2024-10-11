@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { CoreProcessor } from 'keyman/engine/core-processor';
+import { CoreKeyboard, CoreProcessor, KM_CORE_STATUS } from 'keyman/engine/core-processor';
 
 const coreurl = '/web/build/engine/core-processor/obj/import/core';
 
@@ -17,5 +17,14 @@ describe('CoreProcessor', function () {
     assert.isNotNull(a);
     assert.isNumber(a.max_context);
     console.dir(a);
+  });
+
+  it('can load a keyboard from blob', async function () {
+    const kp = new CoreProcessor();
+    await kp.init(coreurl);
+    let kb: CoreKeyboard = {};
+    const status = kp.km_core_keyboard_load_from_blob('test', new Uint8Array([0x4b, 0x58, 0x54, 0x53]), kb);
+    assert.equal(status, KM_CORE_STATUS.OK);
+    assert.isNotNull(kb);
   });
 });
