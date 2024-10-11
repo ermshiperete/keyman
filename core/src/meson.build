@@ -32,8 +32,6 @@ else
 endif
 
 if cpp_compiler.get_id() == 'emscripten'
-  # TODO: why do we need this defn here?
-  defns += ['-DKM_CORE_LIBRARY']
   icu_if_not_on_wasm = []
 else
   # only include this if NOT on wasm.
@@ -48,23 +46,20 @@ endif
 generated_headers = []
 
 if cpp_compiler.get_id() == 'emscripten'
+  util_normalize_table_generator = executable('util_normalize_table_generator',
+      ['util_normalize_table_generator.cpp'],
+      cpp_args: defns + warns,
+      include_directories: [inc],
+      link_args: links,
+      dependencies: [icu_uc, icu_i18n],
+      )
 
-util_normalize_table_generator = executable('util_normalize_table_generator',
-    ['util_normalize_table_generator.cpp'],
-    cpp_args: defns + warns,
-    include_directories: [inc],
-    link_args: links,
-    dependencies: [icu_uc, icu_i18n],
-    )
+  util_normalize_table_h = custom_target('util_normalize_table.h',
+                      output: 'util_normalize_table.h',
+                      command: [util_normalize_table_generator],
+                      capture:true)
 
-util_normalize_table_h = custom_target('util_normalize_table.h',
-                    output: 'util_normalize_table.h',
-                    command: [util_normalize_table_generator],
-                    capture:true)
-
-generated_headers += util_normalize_table_h
-
-
+  generated_headers += util_normalize_table_h
 endif
 
 
@@ -135,13 +130,19 @@ mock_files = files(
 )
 
 if cpp_compiler.get_id() == 'emscripten'
+  defns += '-v'
+  links += ['-sEXPORTED_RUNTIME_METHODS=[\'UTF8ToString\',\'stringToNewUTF8\',\'wasmExports\']',
+      # Forcing inclusion of debug symbols
+      '-g', '-Wlimited-postlink-optimizations', '-lembind']
   host_links = ['--whole-archive', '-sALLOW_MEMORY_GROWTH=1', '-sMODULARIZE=1',
     '-sEXPORT_ES6', '-sENVIRONMENT=web,webview',
     '--emit-tsd', 'km-core-interface.d.ts', '-sERROR_ON_UNDEFINED_SYMBOLS=0']
 
-  links += ['-sEXPORTED_RUNTIME_METHODS=[\'UTF8ToString\',\'stringToNewUTF8\',\'wasmExports\']',
-      # Forcing inclusion of debug symbols
-      '-g', '-Wlimited-postlink-optimizations', '--bind']
+  if get_option('buildtype') == 'debug'
+    links += '-gsource-map'
+    host_links += '-g -gsource-map'
+  endif
+
 endif
 
 lib = library('keymancore',
