@@ -21,7 +21,7 @@ constexpr km_core_attr const engine_attrs = {
   "SIL International"
 };
 
-EMSCRIPTEN_KEEPALIVE km_core_attr const & tmp_wasm_attributes() {
+EMSCRIPTEN_KEEPALIVE km_core_attr const& tmp_wasm_attributes() {
   return engine_attrs;
 }
 
@@ -55,17 +55,22 @@ EMSCRIPTEN_BINDINGS(core_interface) {
 
   em::function("tmp_wasm_attributes", &tmp_wasm_attributes);
 
-  em::enum_<km_core_status_codes>("km_core_status_codes")
-      .value("OK", KM_CORE_STATUS_OK)
-      .value("NO_MEM", KM_CORE_STATUS_NO_MEM)
-      .value("IO_ERROR", KM_CORE_STATUS_IO_ERROR)
-      .value("INVALID_ARGUMENT", KM_CORE_STATUS_INVALID_ARGUMENT)
-      .value("KEY_ERROR", KM_CORE_STATUS_KEY_ERROR)
-      .value("INSUFFICENT_BUFFER", KM_CORE_STATUS_INSUFFICENT_BUFFER)
-      .value("INVALID_UTF", KM_CORE_STATUS_INVALID_UTF)
-      .value("INVALID_KEYBOARD", KM_CORE_STATUS_INVALID_KEYBOARD)
-      .value("NOT_IMPLEMENTED", KM_CORE_STATUS_NOT_IMPLEMENTED)
-      .value("OS_ERROR", KM_CORE_STATUS_OS_ERROR);
+  // Unfortunately embind has an open issue with enums and typescript where it
+  // only generates a type for the enum, but not the values in a usable way.
+  // Therefore it's not much use to expose the enum here.
+  // See https://github.com/emscripten-core/emscripten/issues/18585
+
+  // em::enum_<km_core_status_codes>("km_core_status_codes")
+  //   .value("OK", KM_CORE_STATUS_OK)
+  //   .value("NO_MEM", KM_CORE_STATUS_NO_MEM)
+  //   .value("IO_ERROR", KM_CORE_STATUS_IO_ERROR)
+  //   .value("INVALID_ARGUMENT", KM_CORE_STATUS_INVALID_ARGUMENT)
+  //   .value("KEY_ERROR", KM_CORE_STATUS_KEY_ERROR)
+  //   .value("INSUFFICENT_BUFFER", KM_CORE_STATUS_INSUFFICENT_BUFFER)
+  //   .value("INVALID_UTF", KM_CORE_STATUS_INVALID_UTF)
+  //   .value("INVALID_KEYBOARD", KM_CORE_STATUS_INVALID_KEYBOARD)
+  //   .value("NOT_IMPLEMENTED", KM_CORE_STATUS_NOT_IMPLEMENTED)
+  //   .value("OS_ERROR", KM_CORE_STATUS_OS_ERROR);
 
   em::function("km_core_keyboard_load_from_blob", &km_core_keyboard_load_from_blob_wasm, em::allow_raw_pointers());
 }

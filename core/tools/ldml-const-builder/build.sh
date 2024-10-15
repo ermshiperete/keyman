@@ -20,24 +20,21 @@ builder_parse "$@"
 # TODO: build if out-of-date if test is specified
 # TODO: configure if npm has not been run, and build is specified
 
-
-if builder_start_action clean; then
+clean_action() {
   rm -rf ../../include/ldml/build/
   # Not removing ${CORE_LDML_H_FILE} as it is checked in
-  builder_finish_action success clean
-fi
+}
 
-if builder_start_action build; then
+build_action() {
   # Generate index.ts
   npx tsc -b ../../include/ldml/tsconfig.build.json
+}
 
-  builder_finish_action success build
-fi
-
-if builder_start_action run; then
-  node --enable-source-maps ../../include/ldml/ldml-const-builder/ldml-const-builder.js > ${CORE_LDML_H_FILE}
+run_action() {
+  node --enable-source-maps ../../include/ldml/ldml-const-builder/ldml-const-builder.js > "${CORE_LDML_H_FILE}"
   echo "Updated ${CORE_LDML_H_FILE}"
+}
 
-  builder_finish_action success run
-fi
-
+builder_run_action clean  clean_action
+builder_run_action build  build_action
+builder_run_action run    run_action

@@ -130,7 +130,6 @@ mock_files = files(
 )
 
 if cpp_compiler.get_id() == 'emscripten'
-  defns += '-v'
   links += ['-sEXPORTED_RUNTIME_METHODS=[\'UTF8ToString\',\'stringToNewUTF8\',\'wasmExports\']',
       # Forcing inclusion of debug symbols
       '-g', '-Wlimited-postlink-optimizations', '-lembind']

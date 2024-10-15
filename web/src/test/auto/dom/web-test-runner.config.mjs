@@ -15,9 +15,9 @@ const KEYMAN_ROOT = resolve(dir, '../../../../../');
 export default {
   // debug: true,
   browsers: [
-    new LauncherWrapper(playwrightLauncher({ product: 'chromium' })),
+    // new LauncherWrapper(playwrightLauncher({ product: 'chromium' })),
     new LauncherWrapper(playwrightLauncher({ product: 'firefox' })),
-    new LauncherWrapper(playwrightLauncher({ product: 'webkit', concurrency: 1 })),
+    // new LauncherWrapper(playwrightLauncher({ product: 'webkit', concurrency: 1 })),
     // named(new LauncherWrapper(playwrightLauncher({
     //   product: 'webkit', concurrency: 1, createBrowserContext({ browser }) {
     //     return browser.newContext({ ...devices['iPhone X'] });
