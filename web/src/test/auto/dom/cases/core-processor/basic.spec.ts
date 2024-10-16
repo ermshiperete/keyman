@@ -1,7 +1,7 @@
 import { assert } from 'chai';
 import { CoreKeyboard, CoreProcessor, KM_CORE_STATUS } from 'keyman/engine/core-processor';
 
-const coreurl = '/web/build/engine/core-processor/obj/import/core';
+const coreurl = '/build/engine/core-processor/obj/import/core';
 
 // Test the CoreProcessor interface.
 describe('CoreProcessor', function () {
