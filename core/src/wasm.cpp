@@ -1,6 +1,7 @@
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
 #include <emscripten/bind.h>
+#include <vector>
 
 #ifdef __cplusplus
 #define EXTERN extern "C" EMSCRIPTEN_KEEPALIVE
@@ -25,17 +26,33 @@ EMSCRIPTEN_KEEPALIVE km_core_attr const& tmp_wasm_attributes() {
   return engine_attrs;
 }
 
+template <typename T>
+struct ObjectHolder{
+  T* obj;
+};
+
+km_core_status
+keyboard_load_from_blob_internal(const km_core_path_name kb_name, const std::vector<uint8_t>& buf, km_core_keyboard** keyboard);
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
 EMSCRIPTEN_KEEPALIVE km_core_status
-km_core_keyboard_load_from_blob_wasm(std::string kb_name, uintptr_t blob, const unsigned int blob_size, uintptr_t keyboard) {
-  return km_core_keyboard_load_from_blob(
-      kb_name.c_str(),
-      reinterpret_cast<void*>(blob),
-      blob_size,
-      reinterpret_cast<km_core_keyboard**>(keyboard));
+km_core_keyboard_load_from_blob_wasm(
+    std::string kb_name,
+    const emscripten::val& blob_val,
+    ObjectHolder<km_core_keyboard>& keyboard
+) {
+  std::vector<uint8_t> blob;
+
+  const auto length = blob_val["length"].as<unsigned>();
+  blob.resize(length);
+
+  emscripten::val memoryView{emscripten::typed_memory_view(length, blob.data())};
+  memoryView.call<void>("set", blob_val);
+  return ::keyboard_load_from_blob_internal(
+      kb_name.c_str(), blob, &keyboard.obj);
 }
 
 #if defined(__cplusplus)
@@ -54,6 +71,9 @@ EMSCRIPTEN_BINDINGS(core_interface) {
     ;
 
   em::function("tmp_wasm_attributes", &tmp_wasm_attributes);
+
+  em::value_object<ObjectHolder>("ObjectHolder")
+    .field("obj", &ObjectHolder::obj);
 
   // Unfortunately embind has an open issue with enums and typescript where it
   // only generates a type for the enum, but not the values in a usable way.

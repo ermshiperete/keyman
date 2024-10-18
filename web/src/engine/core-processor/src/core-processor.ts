@@ -50,6 +50,6 @@ export class CoreProcessor {
   }
 
   public km_core_keyboard_load_from_blob(kb_name: string, blob: Uint8Array, keyboard: CoreKeyboard): KM_CORE_STATUS {
-    return this.instance.km_core_keyboard_load_from_blob(kb_name, blob, blob.length, keyboard);
+    return this.instance.km_core_keyboard_load_from_blob(kb_name, blob, keyboard);
   }
 }
