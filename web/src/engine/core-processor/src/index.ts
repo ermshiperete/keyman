@@ -1,1 +1,1 @@
-export * from './core-processor.js';
+export * from './core-factory.js';
