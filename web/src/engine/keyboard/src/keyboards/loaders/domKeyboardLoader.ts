@@ -2,6 +2,7 @@
 
 ///<reference lib="dom" />
 
+import { MainModule as KmCoreModule } from 'keyman/engine/core-processor';
 import { default as Keyboard } from '../keyboard.js';
 import { KeyboardHarness, MinimalKeymanGlobal } from '../keyboardHarness.js';
 import { KeyboardLoaderBase } from '../keyboardLoaderBase.js';
@@ -14,16 +15,16 @@ export class DOMKeyboardLoader extends KeyboardLoaderBase {
   constructor()
   constructor(harness: KeyboardHarness);
   constructor(harness: KeyboardHarness, cacheBust?: boolean)
-  constructor(harness?: KeyboardHarness, cacheBust?: boolean) {
+  constructor(harness?: KeyboardHarness, cacheBust?: boolean, km_core?: KmCoreModule) {
     if(harness && harness._jsGlobal != window) {
       // Copy the String typing over; preserve string extensions!
       harness._jsGlobal['String'] = window['String'];
     }
 
     if(!harness) {
-      super(new KeyboardHarness(window, MinimalKeymanGlobal));
+      super(new KeyboardHarness(window, MinimalKeymanGlobal), km_core);
     } else {
-      super(harness);
+      super(harness, km_core);
     }
 
     this.performCacheBusting = cacheBust || false;

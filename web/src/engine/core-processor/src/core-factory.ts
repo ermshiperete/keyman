@@ -1,7 +1,6 @@
 // Keyman is copyright (C) SIL International. MIT License.
 
 import { type MainModule } from './import/core/km-core-interface.js';
-export { MainModule };
 
 // Unfortunately embind has an open issue with enums and typescript where it
 // only generates a type for the enum, but not the values in a usable way.

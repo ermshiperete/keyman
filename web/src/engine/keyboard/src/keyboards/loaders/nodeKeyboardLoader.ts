@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 
 import { globalObject } from '@keymanapp/web-utils';
 
+import { MainModule as KmCoreModule } from 'keyman/engine/core-processor';
 import { default as Keyboard } from '../keyboard.js';
 import { KeyboardHarness, MinimalKeymanGlobal } from '../keyboardHarness.js';
 import { KeyboardLoaderBase } from '../keyboardLoaderBase.js';
@@ -11,9 +12,9 @@ import { KeyboardLoadErrorBuilder } from '../keyboardLoadError.js';
 export class NodeKeyboardLoader extends KeyboardLoaderBase {
   constructor()
   constructor(harness: KeyboardHarness);
-  constructor(harness?: KeyboardHarness) {
+  constructor(harness?: KeyboardHarness, km_core?: KmCoreModule) {
     if(!harness) {
-      super(new KeyboardHarness(vm.createContext(), MinimalKeymanGlobal));
+      super(new KeyboardHarness(vm.createContext(), MinimalKeymanGlobal), km_core);
     } else {
       // If we're going to sandbox, make sure the sandbox is sufficient!
       if(globalObject() != harness._jsGlobal) {
@@ -22,7 +23,7 @@ export class NodeKeyboardLoader extends KeyboardLoaderBase {
         harness._jsGlobal.String = globalObject().String;
       }
 
-      super(harness);
+      super(harness, km_core);
     }
   }
 

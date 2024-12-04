@@ -242,7 +242,7 @@ export default class KeymanEngine<
 
     // Since we're not sandboxing keyboard loads yet, we just use `window` as the jsGlobal object.
     // All components initialized below require a properly-configured `config.paths` or similar.
-    const keyboardLoader = new KeyboardLoader(this.interface, config.applyCacheBusting);
+    const keyboardLoader = new KeyboardLoader(this.interface, config.applyCacheBusting, this.core.keymanCore);
     this.keyboardRequisitioner = new KeyboardRequisitioner(keyboardLoader, new DOMCloudRequester(), this.config.paths);
     this.modelCache = new ModelCache();
     const kbdCache = this.keyboardRequisitioner.cache;
