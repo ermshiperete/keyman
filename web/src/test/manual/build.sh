@@ -28,12 +28,12 @@ builder_parse "$@"
 DEST="web/build/test-resources"
 
 builder_describe_outputs \
-  build       "/$DEST/sentry-manager.js"
+  build       "${KEYMAN_ROOT}/${DEST}/sentry-manager.js"
 
 #### Resource paths ####
 
-SENTRY_MANAGER_SRC="$KEYMAN_ROOT/web/src/engine/sentry-manager/build/lib/index.js"
-SENTRY_MANAGER_MAP="$KEYMAN_ROOT/web/src/engine/sentry-manager/build/lib/index.js.map"
+SENTRY_MANAGER_SRC="${KEYMAN_ROOT}/web/src/engine/sentry-manager/build/lib/index.js"
+SENTRY_MANAGER_MAP="${KEYMAN_ROOT}/web/src/engine/sentry-manager/build/lib/index.js.map"
 
 #### Build action definitions ####
 
@@ -41,15 +41,17 @@ SENTRY_MANAGER_MAP="$KEYMAN_ROOT/web/src/engine/sentry-manager/build/lib/index.j
 # GESTURE_PROCESSOR_TARGET="$KEYMAN_ROOT/web/build/engine/gesture-processor/lib/"
 
 function do_copy() {
-  mkdir -p "$KEYMAN_ROOT/$DEST"
+  mkdir -p "${KEYMAN_ROOT}/${DEST}"
 
   # The next four lines are needed for the sentry-integration manual test page.
-  cp "$SENTRY_MANAGER_SRC"  "$KEYMAN_ROOT/$DEST/sentry-manager.js"
-  cp "$SENTRY_MANAGER_MAP"  "$KEYMAN_ROOT/$DEST/sentry-manager.js.map"
+  cp "${SENTRY_MANAGER_SRC}"  "${KEYMAN_ROOT}/${DEST}/sentry-manager.js"
+  cp "${SENTRY_MANAGER_MAP}"  "${KEYMAN_ROOT}/${DEST}/sentry-manager.js.map"
 
-  # mkdir -p "$GESTURE_PROCESSOR_TARGET"
-  # cp -a "$GESTURE_PROCESSOR_BUILD" "$GESTURE_PROCESSOR_TARGET"
+  cp "${KEYMAN_ROOT}/common/web/types/tests/fixtures/kmx/khmer_angkor.kmx" "${KEYMAN_ROOT}/${DEST}/"
+
+  # mkdir -p "${GESTURE_PROCESSOR_TARGET}"
+  # cp -a "${GESTURE_PROCESSOR_BUILD}" "${GESTURE_PROCESSOR_TARGET}"
 }
 
-builder_run_action clean rm -rf "$KEYMAN_ROOT/$DEST"
+builder_run_action clean rm -rf "${KEYMAN_ROOT}/${DEST}"
 builder_run_action build do_copy
