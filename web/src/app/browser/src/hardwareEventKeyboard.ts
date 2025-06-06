@@ -39,7 +39,7 @@ export function _GetEventKeyCode(e: KeyboardEvent) {
 
 /**
  * Function     preprocessKeyboardEvent
- * @param       {Event}         e              Event object
+ * @param       {Event}         e              KeyboardEvent object
  * @param       {KeyboardState} keyboardState  Keyboard state object
  * @param       {DeviceSpec}    device         Device object
  * @return      {KeyEvent}                     KMW keyboard event object:
