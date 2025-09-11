@@ -206,6 +206,7 @@ jobs:
     - name: Build test image
       run: |
         cd "${GITHUB_WORKSPACE}/artifacts"
+        sudo chown ${USER} /dev/kvm
         autopkgtest-buildvm-ubuntu-cloud -v --release=jammy
 
     - name: Run tests
