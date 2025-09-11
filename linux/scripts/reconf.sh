@@ -31,7 +31,8 @@ quilt push -a || true
 quilt new version_py.diff
 quilt add "version.py"
 
-echo $'sed \
+cat << EOF
+sed \
     -e "s/__KEYMAN_VERSION__/${KEYMAN_VERSION}/g" \
     -e "s/__KEYMAN_VERSION_WITH_TAG__/${KEYMAN_VERSION_WITH_TAG}/g" \
     -e "s/__KEYMAN_VERSION_GIT_TAG__/${KEYMAN_VERSION_GIT_TAG}/g" \
@@ -40,7 +41,8 @@ echo $'sed \
     -e "s/__KEYMAN_TIER__/${KEYMAN_TIER}/g" \
     -e "s/__KEYMAN_VERSION_ENVIRONMENT__/${KEYMAN_VERSION_ENVIRONMENT}/g" \
     -e "s/__UPLOAD_SENTRY__/${UPLOAD_SENTRY}/g" \
-    version.py.in > version.py'
+    version.py.in > version.py
+EOF
 
 sed \
     -e "s/__KEYMAN_VERSION__/${KEYMAN_VERSION}/g" \
