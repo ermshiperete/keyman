@@ -207,14 +207,14 @@ jobs:
       run: |
         cd "${GITHUB_WORKSPACE}/artifacts"
         sudo chown ${USER} /dev/kvm
-        autopkgtest-buildvm-ubuntu-cloud -v --release=noble
+        autopkgtest-buildvm-ubuntu-cloud -v --release=$(lsb_release -c -s)
 
     - name: Run tests
       run: |
-        ls -al "${GITHUB_WORKSPACE}"
         cd "${GITHUB_WORKSPACE}/artifacts"
         ls -al
-        autopkgtest -B *.deb keyman_*.dsc -- qemu autopkgtest-noble-amd64.img
+        DIST="$(lsb_release -c -s)"
+        autopkgtest -B *${DIST}*.deb keyman_*.dsc -- qemu autopkgtest-${DIST}-amd64.img
 
   deb_signing:
     name: Sign source and binary packages
