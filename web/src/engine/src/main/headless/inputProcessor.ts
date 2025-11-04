@@ -9,7 +9,7 @@ import { CoreKeyboardProcessor } from 'keyman/engine/core-processor';
 
 import {
   Codes,
-  JSKeyboard,
+  JSKeyboard, // TODO-web-core: huh? why is this here
   KeyboardMinimalInterface,
   SyntheticTextStore,
   TextStore,

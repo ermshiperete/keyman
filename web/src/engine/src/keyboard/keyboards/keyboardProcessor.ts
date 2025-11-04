@@ -4,18 +4,18 @@
 import { EventEmitter } from 'eventemitter3';
 import { DeviceSpec } from 'keyman/common/web-utils';
 import { KeyEvent } from '../keyEvent.js';
-import { OutputTargetInterface } from '../outputTargetInterface.js';
 import { type MutableSystemStore } from "../systemStore.js";
 import { Keyboard } from './keyboardLoaderBase.js';
 import { KeyboardMinimalInterface } from './keyboardMinimalInterface.js';
 import { ProcessorAction } from './processorAction.js';
 import { StateKeyMap } from './stateKeyMap.js';
+import { TextStore } from '../textStore.js';
 
 export interface EventMap {
   statekeychange: (stateKeys: StateKeyMap) => void;
 }
 
-export type BeepHandler = (outputTarget: OutputTargetInterface) => void;
+export type BeepHandler = (textStore: TextStore) => void;
 
 export interface KeyboardProcessor extends EventEmitter<EventMap> {
   // public static readonly DEFAULT_OPTIONS: ProcessorInitOptions = {
@@ -58,9 +58,9 @@ export interface KeyboardProcessor extends EventEmitter<EventMap> {
   get layerId(): string;
   set layerId(value: string);
 
-  processPostKeystroke(device: DeviceSpec, outputTarget: OutputTargetInterface): ProcessorAction;
+  processPostKeystroke(device: DeviceSpec, textStore: TextStore): ProcessorAction;
 
-  processKeystroke(keyEvent: KeyEvent, outputTarget: OutputTargetInterface): ProcessorAction;
+  processKeystroke(keyEvent: KeyEvent, textStore: TextStore): ProcessorAction;
 
   /**
    * Select the OSK's next keyboard layer based upon layer switching keys as a default
@@ -73,11 +73,11 @@ export interface KeyboardProcessor extends EventEmitter<EventMap> {
 
   // Returns true if the key event is a modifier press, allowing keyPress to return selectively
   // in those cases.
-  doModifierPress(Levent: KeyEvent, outputTarget: OutputTargetInterface, isKeyDown: boolean): boolean;
+  doModifierPress(Levent: KeyEvent, textStore: TextStore, isKeyDown: boolean): boolean;
 
-  resetContext(target?: OutputTargetInterface): void;
+  resetContext(textStore?: TextStore): void;
 
   setNumericLayer(device: DeviceSpec): void;
 
-  finalizeProcessorAction(data: ProcessorAction, outputTarget: OutputTargetInterface): void;
+  finalizeProcessorAction(data: ProcessorAction, textStore: TextStore): void;
 }

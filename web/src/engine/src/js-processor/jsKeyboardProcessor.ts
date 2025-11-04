@@ -14,7 +14,7 @@ import {
   TextStore, ProcessorAction, SystemStoreIDs, SyntheticTextStore,
   KeyboardProcessor,
   EventMap,
-  BeepHandler
+  BeepHandler,
 } from "keyman/engine/keyboard";
 import { JSKeyboardInterface }  from './jsKeyboardInterface.js';
 import { DeviceSpec, globalObject, KMWString } from "keyman/common/web-utils";
@@ -25,14 +25,14 @@ export type LogMessageHandler = (str: string) => void;
 
 export interface ProcessorInitOptions {
   baseLayout?: string;
-  keyboardInterface?: JSKeyboardInterface;
+  keyboardInterface?: JSKeyboardInterface; // for tests, replace keyboardInterface with a mock, TODO-web-core: refactor into a unit test pattern
   defaultOutputRules?: DefaultRules; // Takes the class def object, not an instance thereof.
 }
 
 export class JSKeyboardProcessor extends EventEmitter<EventMap> implements KeyboardProcessor {
   private static readonly DEFAULT_OPTIONS: ProcessorInitOptions = {
     baseLayout: 'us',
-    defaultOutputRules: new DefaultRules()
+    defaultOutputRules: new DefaultRules()  // TODO-web-core: move this out of here and only in keymanEngine.ts, rename to DefaultOutputRules
   };
 
   // Tracks the simulated value for supported state keys, allowing the OSK to mirror a physical keyboard for them.
