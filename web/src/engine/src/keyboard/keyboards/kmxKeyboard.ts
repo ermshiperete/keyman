@@ -6,6 +6,7 @@ import {
 import { ActiveKey, ActiveSubKey } from './activeLayout.js';
 import { StateKeyMap } from './stateKeyMap.js';
 import { KeyEvent } from '../keyEvent.js';
+import { OutputTargetInterface } from '../outputTargetInterface.js';
 
 /**
  * Acts as a wrapper class for KMX(+) Keyman keyboards
@@ -95,6 +96,16 @@ export class KMXKeyboard {
   public get emulatesAltGr(): boolean {
     // TODO-web-core: Implement this method
     return false;
+  }
+
+  /**
+   * @param       {number}    eventCode     event code (16,17,18) or 0 // TODO-web-core: document meaning of these!
+   * @param       {Object}    target        target element
+   * @param       {number}    data          1 or 0
+   * Notifies keyboard of keystroke or other event
+   */
+  public notify(eventCode: 16|17|18|0, target: OutputTargetInterface, data: number) { // I2187
+    // TODO-web-core: do we need to support this?
   }
 
 }

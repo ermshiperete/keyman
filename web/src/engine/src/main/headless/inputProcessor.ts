@@ -42,8 +42,8 @@ export class InputProcessor {
   private contextDevice: DeviceSpec;
   private jsKbdProcessor: JSKeyboardProcessor;
   private coreKbdProcessor: CoreKeyboardProcessor;
-  private activeKbdProcessor: KeyboardProcessor;
-  private lngProcessor: LanguageProcessor;
+  private _keyboardProcessor: KeyboardProcessor;
+  private _languageProcessor: LanguageProcessor;
 
 
   private readonly contextCache = new TranscriptionCache();
@@ -59,9 +59,9 @@ export class InputProcessor {
 
     this.contextDevice = device;
     this.jsKbdProcessor = new JSKeyboardProcessor(device, options);
-    this.activeKbdProcessor = this.jsKbdProcessor;
+    this._keyboardProcessor = this.jsKbdProcessor;
     this.coreKbdProcessor = new CoreKeyboardProcessor();
-    this.lngProcessor = new LanguageProcessor(predictiveWorkerFactory, this.contextCache);
+    this._languageProcessor = new LanguageProcessor(predictiveWorkerFactory, this.contextCache);
   }
 
   public async init(paths: PathConfiguration): Promise<void> {
@@ -69,11 +69,11 @@ export class InputProcessor {
   }
 
   public get languageProcessor(): LanguageProcessor {
-    return this.lngProcessor;
+    return this._languageProcessor;
   }
 
   public get keyboardProcessor(): KeyboardProcessor {
-    return this.activeKbdProcessor;
+    return this._keyboardProcessor;
   }
 
   public get keyboardInterface(): KeyboardMinimalInterface {
@@ -85,13 +85,15 @@ export class InputProcessor {
   }
 
   public set activeKeyboard(keyboard: Keyboard) {
-    this.keyboardInterface.activeKeyboard = keyboard;
 
-    if (keyboard instanceof JSKeyboard) {
-      this.activeKbdProcessor = this.jsKbdProcessor;
+    if (keyboard instanceof JSKeyboard || keyboard == null) {
+      // TODO-web-core: consider keyboard==null scenario; which keyboardProcessor should be active?
+      this._keyboardProcessor = this.jsKbdProcessor;
     } else {
-      this.activeKbdProcessor = this.coreKbdProcessor;
+      this._keyboardProcessor = this.coreKbdProcessor;
     }
+
+    this.keyboardInterface.activeKeyboard = keyboard;
 
     // All old deadkeys and keyboard-specific cache should immediately be invalidated
     // on a keyboard change.
