@@ -3,19 +3,19 @@
  */
 
 import { EventEmitter } from 'eventemitter3';
-import { KM_Core, KM_CORE_STATUS } from 'keyman/engine/core-adapter';
+import { KM_Core, KM_CORE_STATUS, KM_CORE_CT, km_core_context, km_core_context_item } from 'keyman/engine/core-adapter';
 import {
   BeepHandler,
   DeviceSpec, EventMap, Keyboard, KeyboardMinimalInterface, KeyboardProcessor,
   KeyEvent, KMXKeyboard, SyntheticTextStore, MutableSystemStore, TextStore, ProcessorAction,
-  StateKeyMap
+  StateKeyMap,
+  Deadkey
 } from "keyman/engine/keyboard";
 
 export class CoreKeyboardInterface implements KeyboardMinimalInterface {
   public activeKeyboard: Keyboard;
 
   constructor() {
-
   }
 }
 
@@ -96,16 +96,28 @@ export class CoreKeyboardProcessor extends EventEmitter<EventMap> implements Key
     // TODO-web-core: KM_Core.instance.km_core_context_set(...);
   }
 
-  private saveMarkersToTextStore(keyboard: KMXKeyboard, textStore: TextStore) {
-    // TODO-web-core: KM_Core.instance.km_core_context_get(...); Strip existing
-    // deadkeys from textStore and then iterate over the context items and add
-    // them back into the textStore (I think)
+  private saveMarkersToTextStore(context: km_core_context, textStore: TextStore): void {
+    const { status, object } = KM_Core.instance.context_get(context);
+    if (status != KM_CORE_STATUS.OK) {
+      console.error('KeymanWeb: km_core_context_get failed with status: ' + status);
+      return;
+    }
+    textStore.deadkeys().clear();
+    const contextItems = object.items;
+    for (let i = 0; i < contextItems.length; i++) {
+      const contextItem = contextItems[i] as km_core_context_item;
+      if (contextItem.type !== KM_CORE_CT.MARKER) {
+        continue;
+      }
+      textStore.deadkeys().add(new Deadkey(i, contextItem.marker));
+    }
   }
 
   public processKeystroke(keyEvent: KeyEvent, textStore: TextStore): ProcessorAction {
 
     const preInput = SyntheticTextStore.from(textStore, true);
     const activeKeyboard = this.activeKeyboard as KMXKeyboard;
+    const coreContext = KM_Core.instance.state_context(activeKeyboard.state);
 
     // TODO-web-core: retrieve context including deadkeys from textStore and
     // apply to Core's context
@@ -137,8 +149,7 @@ export class CoreKeyboardProcessor extends EventEmitter<EventMap> implements Key
 
     textStore.deleteCharsBeforeCaret(core_actions.code_points_to_delete);
     textStore.insertTextBeforeCaret(core_actions.output);
-    // TODO-web-core: retrieve deadkeys from Core and apply to textStore
-    this.saveMarkersToTextStore(activeKeyboard, textStore);
+    this.saveMarkersToTextStore(coreContext, textStore);
 
     processorAction.beep = core_actions.do_alert;
     processorAction.triggerKeyDefault = core_actions.emit_keystroke;
@@ -177,5 +188,10 @@ export class CoreKeyboardProcessor extends EventEmitter<EventMap> implements Key
 
   public setNumericLayer(device: DeviceSpec): void {}
 
-  public finalizeProcessorAction(data: ProcessorAction, textStore: TextStore): void {}
+  public finalizeProcessorAction(data: ProcessorAction, textStore: TextStore): void { }
+
+  /** @internal */
+  public unitTestEndPoints = {
+    saveMarkersToTextStore: this.saveMarkersToTextStore.bind(this)
+  };
 }
