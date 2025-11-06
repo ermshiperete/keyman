@@ -5,7 +5,7 @@ import { LanguageProcessor }  from "./languageProcessor.js";
 import type { ModelSpec, PathConfiguration }  from "keyman/engine/interfaces";
 import { globalObject, DeviceSpec, isEmptyTransform } from "keyman/common/web-utils";
 
-import { KM_Core } from 'keyman/engine/core-processor';
+import { CoreKeyboardProcessor } from 'keyman/engine/core-processor';
 
 import {
   Codes,
@@ -39,7 +39,8 @@ export class InputProcessor {
    * entry points.
    */
   private contextDevice: DeviceSpec;
-  private kbdProcessor: JSKeyboardProcessor;
+  private jsKbdProcessor: JSKeyboardProcessor;
+  private coreKbdProcessor: CoreKeyboardProcessor;
   private lngProcessor: LanguageProcessor;
 
 
@@ -55,12 +56,13 @@ export class InputProcessor {
     }
 
     this.contextDevice = device;
-    this.kbdProcessor = new JSKeyboardProcessor(device, options);
+    this.jsKbdProcessor = new JSKeyboardProcessor(device, options);
+    this.coreKbdProcessor = new CoreKeyboardProcessor();
     this.lngProcessor = new LanguageProcessor(predictiveWorkerFactory, this.contextCache);
   }
 
   public async init(paths: PathConfiguration): Promise<void> {
-    await KM_Core.createCoreProcessor(paths.basePath);
+    await this.coreKbdProcessor.init(paths.basePath);
   }
 
   public get languageProcessor(): LanguageProcessor {
@@ -68,7 +70,7 @@ export class InputProcessor {
   }
 
   public get keyboardProcessor(): JSKeyboardProcessor {
-    return this.kbdProcessor;
+    return this.jsKbdProcessor;
   }
 
   public get keyboardInterface(): KeyboardMinimalInterface {
