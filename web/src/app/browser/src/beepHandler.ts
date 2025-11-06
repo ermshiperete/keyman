@@ -76,7 +76,8 @@ export class BeepHandler {
    * Description  Reset/terminate beep or flash (not currently used: Aug 2011)
    */
   readonly reset = () => {
-    // TODO-web-core: implement for KMX keyboards if needed
+    // TODO-web-core: why on earth is the beep handler resetting context? This should be eliminated (not part of kmx-core work directly)
+    // note: we spelunked and found that this was present in KMW2.0, probably a bug
     if (this.keyboardInterface.activeKeyboard instanceof JSKeyboard) {
       (this.keyboardInterface as JSKeyboardInterface).resetContextCache();
     }
