@@ -1,3 +1,6 @@
+/*
+ * Keyman is copyright (C) SIL Global. MIT License.
+ */
 #ifdef __EMSCRIPTEN__
 #include <emscripten/emscripten.h>
 #include <emscripten/bind.h>
@@ -26,7 +29,7 @@ struct BindingType<std::vector<T, Allocator>> {
     using ValBinding = BindingType<val>;
     using WireType = ValBinding::WireType;
 
-#if __EMSCRIPTEN_major__ == 3 && __EMSCRIPTEN_minor__ == 1 && __EMSCRIPTEN_tiny__ >= 60
+#if (__EMSCRIPTEN_major__ == 3 && __EMSCRIPTEN_minor__ == 1 && __EMSCRIPTEN_tiny__ >= 60) || (__EMSCRIPTEN_major__ > 3)
     // emscripten-core/emscripten#21692
     static WireType toWireType(const std::vector<T, Allocator> &vec, rvp::default_tag) {
         return ValBinding::toWireType(val::array(vec), rvp::default_tag{});
@@ -92,7 +95,43 @@ public:
   std::u32string deleted_context;
 };
 
-template <typename T> class CoreReturn {
+class km_core_context_item_wasm: public km_core_context_item {
+  // Binding a union is not directly supported by emscripten, so we
+  // provide getters and setters.
+  // See https://github.com/emscripten-core/emscripten/issues/5381
+
+public:
+  km_core_context_item_wasm(km_core_context_item const& item) : km_core_context_item(item) {}
+
+  unsigned int getType() const {
+    return this->type;
+  }
+
+  unsigned int getCharacter() const {
+    assert(this->type == KM_CORE_CT_CHAR);
+    return this->character;
+  }
+  void setCharacter(unsigned int character) {
+    this->character = character;
+    this->type = KM_CORE_CT_CHAR;
+  }
+
+  unsigned int getMarker() const {
+    assert(this->type == KM_CORE_CT_MARKER);
+    return this->marker;
+  }
+  void setMarker(unsigned int marker) {
+    this->marker = marker;
+    this->type = KM_CORE_CT_MARKER;
+  }
+};
+
+struct km_core_context_items {
+  std::vector<km_core_context_item_wasm> items;
+};
+
+template <typename T>
+class CoreReturn {
 public:
   CoreReturn(int status = 0, const T* obj = nullptr) : status(status), object(obj) {
   }
@@ -211,6 +250,29 @@ km_core_state_get_actions_wasm(km_core_state const *state) {
   return actions_wasm;
 }
 
+EMSCRIPTEN_KEEPALIVE const CoreReturn<km_core_context_items>*
+km_core_context_get_wasm(km_core_context const* context) {
+  km_core_context_item* items = nullptr;
+  km_core_status status = km_core_context_get(context, &items);
+  km_core_context_items* items_wasm = new km_core_context_items();
+  if (status == KM_CORE_STATUS_OK) {
+    for (const km_core_context_item* item = items; item && item->type != KM_CORE_CT_END; item++) {
+      items_wasm->items.push_back(km_core_context_item_wasm(*item));
+    }
+    items_wasm->items.push_back(km_core_context_item_wasm({KM_CORE_CT_END, {0,}, {0,}}));
+    km_core_context_items_dispose(items);
+  }
+  return new CoreReturn<km_core_context_items>(status, items_wasm);
+}
+
+EMSCRIPTEN_KEEPALIVE km_core_status
+km_core_context_set_wasm(km_core_context const* context, km_core_context_items const *context_items) {
+  if (!context_items) {
+    return KM_CORE_STATUS_INVALID_ARGUMENT;
+  }
+  return km_core_context_set((km_core_context*)context, context_items->items.data());
+}
+
 EMSCRIPTEN_BINDINGS(core_interface) {
 
   em::value_object<km_core_attr>("km_core_attr")
@@ -253,6 +315,9 @@ EMSCRIPTEN_BINDINGS(core_interface) {
   em::class_<CoreReturn<km_core_keyboard_attrs_wasm>>("CoreKeyboardAttrsReturn")
       .property("status", &CoreReturn<km_core_keyboard_attrs_wasm>::getStatus)
       .property("object", &CoreReturn<km_core_keyboard_attrs_wasm>::getObject, em::allow_raw_pointers());
+  em::class_<CoreReturn<km_core_context_items>>("CoreContextReturn")
+      .property("status", &CoreReturn<km_core_context_items>::getStatus)
+      .property("object", &CoreReturn<km_core_context_items>::getObject, em::allow_raw_pointers());
   em::class_<km_core_keyboard_attrs_wasm>("km_core_keyboard_attrs")
     .property("version_string", &km_core_keyboard_attrs_wasm::version_string)
     .property("id", &km_core_keyboard_attrs_wasm::id)
@@ -268,8 +333,17 @@ EMSCRIPTEN_BINDINGS(core_interface) {
 
   em::class_<km_core_state>("km_core_state");
   em::class_<CoreReturn<km_core_state>>("CoreStateReturn")
-      .property("status", &CoreReturn<km_core_state>::getStatus)
-      .property("object", &CoreReturn<km_core_state>::getObject, em::allow_raw_pointers());
+    .property("status", &CoreReturn<km_core_state>::getStatus)
+    .property("object", &CoreReturn<km_core_state>::getObject, em::allow_raw_pointers());
+
+  em::class_<km_core_context>("km_core_context");
+  // Since we use it in CoreReturn it has to be bound as class.
+  em::class_<km_core_context_items>("km_core_context_items")
+    .property("items", &km_core_context_items::items);
+  em::class_<km_core_context_item_wasm>("km_core_context_item")
+    .property("type", &km_core_context_item_wasm::getType)
+    .property("character", &km_core_context_item_wasm::getCharacter, &km_core_context_item_wasm::setCharacter)
+    .property("marker", &km_core_context_item_wasm::getMarker, &km_core_context_item_wasm::setMarker);
 
   em::function("keyboard_load_from_blob", &km_core_keyboard_load_from_blob_wasm, em::allow_raw_pointers());
   em::function("keyboard_dispose", &km_core_keyboard_dispose, em::allow_raw_pointers());
@@ -279,10 +353,14 @@ EMSCRIPTEN_BINDINGS(core_interface) {
   em::function("state_dispose", &km_core_state_dispose, em::allow_raw_pointers());
   em::function("process_event", &km_core_process_event, em::allow_raw_pointers());
 
+  em::function("state_context", &km_core_state_context, em::allow_raw_pointers());
   em::function("state_context_set_if_needed", &km_core_state_context_set_if_needed_wasm, em::allow_raw_pointers());
   em::function("state_context_clear", &km_core_state_context_clear, em::allow_raw_pointers());
   em::function("state_context_debug", &km_core_state_context_debug_wasm, em::allow_raw_pointers());
 
   em::function("state_get_actions", &km_core_state_get_actions_wasm, em::allow_raw_pointers());
+
+  em::function("context_get", &km_core_context_get_wasm, em::allow_raw_pointers());
+  em::function("context_set", &km_core_context_set_wasm, em::allow_raw_pointers());
 }
 #endif
