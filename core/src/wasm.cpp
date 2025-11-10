@@ -101,6 +101,7 @@ class km_core_context_item_wasm: public km_core_context_item {
   // See https://github.com/emscripten-core/emscripten/issues/5381
 
 public:
+  km_core_context_item_wasm() {}
   km_core_context_item_wasm(km_core_context_item const& item) : km_core_context_item(item) {}
 
   unsigned int getType() const {
@@ -339,8 +340,10 @@ EMSCRIPTEN_BINDINGS(core_interface) {
   em::class_<km_core_context>("km_core_context");
   // Since we use it in CoreReturn it has to be bound as class.
   em::class_<km_core_context_items>("km_core_context_items")
+    .constructor()
     .property("items", &km_core_context_items::items);
   em::class_<km_core_context_item_wasm>("km_core_context_item")
+    .constructor<>()
     .property("type", &km_core_context_item_wasm::getType)
     .property("character", &km_core_context_item_wasm::getCharacter, &km_core_context_item_wasm::setCharacter)
     .property("marker", &km_core_context_item_wasm::getMarker, &km_core_context_item_wasm::setMarker);

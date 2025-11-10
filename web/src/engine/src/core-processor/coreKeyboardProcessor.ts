@@ -12,6 +12,10 @@ import {
   Deadkey
 } from "keyman/engine/keyboard";
 
+export class core_context_item {
+  constructor(public type:KM_CORE_CT, public character:number, public marker:number) {}
+}
+
 export class CoreKeyboardInterface implements KeyboardMinimalInterface {
   public activeKeyboard: Keyboard;
 
@@ -91,9 +95,29 @@ export class CoreKeyboardProcessor extends EventEmitter<EventMap> implements Key
     return null;
   }
 
-  private applyContextFromTextStore(keyboard: KMXKeyboard, textStore: TextStore) {
+  private applyContextFromTextStore(context: km_core_context, textStore: TextStore) {
     // TODO-web-core: create an array of KM_CORE_CONTEXT_ITEM incl. interleaved markers
     // TODO-web-core: KM_Core.instance.km_core_context_set(...);
+    const text = textStore.getTextBeforeCaret();
+    const deadKeys = textStore.deadkeys().dks.sort((a, b) => a.p != b.p ? a.p - b.p : a.o - b.o);
+    const contextItems: core_context_item[] = [];
+    for (let i = 0; i < deadKeys.length; i++) {
+      const deadKey = deadKeys[i];
+      for (let j = 0; j < text.length; j++) {
+        let contextItem: core_context_item;
+        if (deadKey.p == j) {
+          contextItem = new core_context_item(KM_CORE_CT.MARKER, 0, deadKey.d);
+        } else {
+          contextItem = new core_context_item(KM_CORE_CT.CHAR, text.charCodeAt(j), 0);
+        }
+        contextItems.push(contextItem);
+      }
+    }
+    // Add end element
+    contextItems.push(new core_context_item(KM_CORE_CT.END, 0, 0));
+
+    x: km_core_context_items
+    KM_Core.instance.context_set(context, contextItems);
   }
 
   private saveMarkersToTextStore(context: km_core_context, textStore: TextStore): void {
@@ -136,7 +160,7 @@ export class CoreKeyboardProcessor extends EventEmitter<EventMap> implements Key
     // managed entirely within Core, KeymanWeb does not need to have knowledge
     // of markers, and then we better align with the desktop Engines.
 
-    this.applyContextFromTextStore(activeKeyboard, textStore);
+    this.applyContextFromTextStore(coreContext, textStore);
 
     const status = KM_Core.instance.process_event(activeKeyboard.state, keyEvent.Lcode, keyEvent.Lmodifiers, 1, 0);
     // TODO-web-core: properly set keyDown and flags
@@ -192,6 +216,8 @@ export class CoreKeyboardProcessor extends EventEmitter<EventMap> implements Key
 
   /** @internal */
   public unitTestEndPoints = {
-    saveMarkersToTextStore: this.saveMarkersToTextStore.bind(this)
+    saveMarkersToTextStore: this.saveMarkersToTextStore.bind(this),
+    applyContextFromTextStore: this.applyContextFromTextStore.bind(this),
+    km_core_context_item: km_core_context_item,
   };
 }
