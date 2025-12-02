@@ -8,6 +8,7 @@ import type {
 
 export default class PlaywrightTeamcityReporter implements Reporter {
   private flowIds: (string | number)[] = [];
+  private suite: Suite;
 
   public constructor(options: { parentFlow?: string } = {}) {
     this.flowIds.push(options.parentFlow ?? 'unit_tests');
@@ -29,15 +30,21 @@ export default class PlaywrightTeamcityReporter implements Reporter {
     console.log(`##teamcity[flowStarted flowId='${this.currentFlowId}' parent='${this.parentFlowId}']`);
   }
 
+  private getTitlePath(test: TestCase): string {
+    return test.titlePath().slice(1).join(', ');
+  }
+
   private endCurrentFlow(): void {
     console.log(`##teamcity[flowFinished flowId = '${this.flowIds.pop()}']`);
   }
 
   public onBegin(config: FullConfig, suite: Suite) {
+    this.suite = suite;
   }
 
   public onTestBegin(test: TestCase, result: TestResult) {
     this.startNewFlow();
+    console.log(`*** testStarted: id=${test.id}, titlePath=${this.getTitlePath(test)}`);
     console.log(`##teamcity[testStarted name='${test.titlePath()}' captureStandardOutput='true']`);
   }
 
