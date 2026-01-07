@@ -23,13 +23,22 @@ class VarStoreSerializer extends CookieSerializer<VariableStore> {
 }
 
 export class VariableStoreCookieSerializer implements VariableStoreSerializer {
-  loadStore(keyboardID: string, storeName: string): VariableStore {
+  public loadStore(keyboardID: string, storeName: string): VariableStore {
+    console.log('VariableStoreCookieSerializer.loadStore call stack:', new Error().stack);
     const storeCookieSerializer = new VarStoreSerializer(keyboardID, storeName);
     return storeCookieSerializer.load();
   }
 
-  saveStore(keyboardID: string, storeName: string, storeMap: VariableStore) {
+  public saveStore(keyboardID: string, storeName: string, storeMap: VariableStore) {
     const storeCookieSerializer = new VarStoreSerializer(keyboardID, storeName);
     storeCookieSerializer.save(storeMap);
+  }
+
+  /**
+   * Finds all variable stores associated with a given keyboard.
+   */
+  public findStores(keyboardID: string): VariableStore[] {
+    // Implementation would go here
+    return [];
   }
 }

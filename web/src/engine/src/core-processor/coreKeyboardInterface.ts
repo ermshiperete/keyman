@@ -4,7 +4,15 @@
 import { KeyboardMinimalInterface, Keyboard, VariableStoreSerializer } from 'keyman/engine/keyboard';
 
 export class CoreKeyboardInterface implements KeyboardMinimalInterface {
-  public activeKeyboard: Keyboard;
+  private _activeKeyboard: Keyboard;
+
+  public get activeKeyboard(): Keyboard {
+    return this._activeKeyboard;
+  }
+  public set activeKeyboard(keyboard: Keyboard) {
+    this._activeKeyboard = keyboard;
+    //this.variableStoreSerializer.loadStore()
+  }
 
   public constructor(public variableStoreSerializer?: VariableStoreSerializer) {
   }

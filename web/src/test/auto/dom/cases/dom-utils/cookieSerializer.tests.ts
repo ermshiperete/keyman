@@ -94,4 +94,25 @@ describe('CookieSerializer', function () {
       assert.notStrictEqual(reloadedObj, obj);
     });
   });
+
+  describe('loadAllMatching', () => {
+    const COOKIE_ID_1 = "TestCookie_One";
+    const COOKIE_ID_2 = "TestCookie_Two";
+    const NONMATCHING_COOKIE_ID = "NonmatchingCookie";
+
+    beforeEach(() => {
+      // Purge the cookies!
+      document.cookie = `${COOKIE_ID_1}=foobar1; ${RESET}; ` +
+        `${COOKIE_ID_2}=foobar2; ${RESET}; ` +
+        `${NONMATCHING_COOKIE_ID}=foobar3; ${RESET}`;
+    });
+
+    it('finds all matching cookies', () => {
+      const result = CookieSerializer.loadAllMatching(/^TestCookie_/);
+      assert.deepEqual(result, [
+        { name: COOKIE_ID_1, value: 'foobar1' },
+        { name: COOKIE_ID_2, value: 'foobar2' }
+      ]);
+    });
+  });
 });
