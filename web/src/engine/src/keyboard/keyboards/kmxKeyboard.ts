@@ -113,4 +113,13 @@ export class KMXKeyboard {
     // TODO: implement for IMX (cf #2239 and #7928)
   }
 
+  /**
+   * Indicates whether the keyboard layout is designed for right-to-left scripts.
+   * This can be used by consumers to adjust UI layout and text direction for RTL keyboards.
+   *
+   * @returns {boolean}  True if the keyboard is right-to-left, otherwise false.
+   */
+  public get isRTL(): boolean {
+    return false;
+  }
 }
