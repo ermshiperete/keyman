@@ -2,7 +2,7 @@
   "name": "root",
   "private": true,
   "devDependencies": {
-    "@microsoft/api-documenter": "^7.23.31",
+    "@microsoft/api-documenter": "^7.29.2",
     "@microsoft/api-extractor": "^7.47.3",
     "@types/chai": "^4.3.14",
     "@types/node": "^20.4.1",
@@ -22,7 +22,7 @@
     "eslint-plugin-n": "^15.7.0",
     "eslint-plugin-promise": "^6.1.1",
     "mocha": "^11.2.2",
-    "playwright": "^1.46.1",
+    "playwright": "^1.58.2",
     "sinon": "^17.0.1",
     "source-map-support": "^0.5.21",
     "tslib": "^2.5.2",
