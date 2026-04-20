@@ -5,6 +5,12 @@
     "outDir": "../../../build/test",
     "tsBuildInfoFile": "../../../build/test/tsconfig.tsbuildinfo",
     "rootDir": ".",
+    // adding types for mocha here causes languageProcessor.tests.js
+    // (which isn't in typescript) to fail
+    // "types": [
+    //   "mocha",
+    //   "chai"
+    // ]
   },
 
   "include": [
