@@ -4,14 +4,42 @@
 import { test, expect, type Page } from '@playwright/test';
 import { clickFieldAndWaitForOSK, getAllKeyboardMenuText, getSelectedKeyboardMenuText, loadPage } from './e2eUtils';
 
-async function setTimeoutAndLoadPage(page: Page, url: string): Promise<void> {
+declare const keyman: any;
+
+async function setTimeoutAndLoadPage(page: Page, url: string, numKeyboards: number): Promise<void> {
   test.setTimeout(5000);
+
+  await page.addInitScript(() => {
+    (window as any).keyboardRegisteredCount = 0;
+
+    const setupListener = (): boolean => {
+      if (typeof keyman === 'undefined') {
+        return false;
+      }
+      keyman.addEventListener('keyboardregistered', function () {
+        (window as any).keyboardRegisteredCount++;
+        return true;
+      });
+      return true;
+    }
+
+    const interval = setInterval(() => {
+      if (setupListener()) {
+        clearInterval(interval);
+      }
+    }, 10);
+  });
+
   await loadPage(page, url);
+
+  await page.waitForFunction((num: number) => {
+    return (window as any).keyboardRegisteredCount >= num;
+  }, numKeyboards);
 }
 
 test.describe('First example from the guide', function () {
   const beforeEach = async (page: Page) => {
-    await setTimeoutAndLoadPage(page, 'http://localhost:3000/build/docs/engine/guide/examples/__first-example.html');
+    await setTimeoutAndLoadPage(page, 'http://localhost:3000/build/docs/engine/guide/examples/__first-example.html', 2);
   }
 
   test('Input field shows US keyboard', async ({ page } : { page: Page }) => {
@@ -43,7 +71,7 @@ test.describe('First example from the guide', function () {
 
 test.describe('Auto-control example from the guide', function () {
   const beforeEach = async (page: Page) => {
-    await setTimeoutAndLoadPage(page, 'http://localhost:3000/build/docs/engine/guide/examples/__auto-control.html');
+    await setTimeoutAndLoadPage(page, 'http://localhost:3000/build/docs/engine/guide/examples/__auto-control.html', 1);
   }
 
   test('Input field shows Lao keyboard', async ({ page } : { page: Page }) => {
@@ -71,7 +99,7 @@ test.describe('Auto-control example from the guide', function () {
 
 test.describe('Control-by-control example from the guide', function () {
   const beforeEach = async (page: Page) => {
-    await setTimeoutAndLoadPage(page, 'http://localhost:3000/build/docs/engine/guide/examples/__control-by-control.html');
+    await setTimeoutAndLoadPage(page, 'http://localhost:3000/build/docs/engine/guide/examples/__control-by-control.html', 6);
   }
 
   test('address field does not have KeymanWeb enabled', async ({ page } : { page: Page }) => {
@@ -86,15 +114,15 @@ test.describe('Control-by-control example from the guide', function () {
     await expect(page.getByRole('img', { name: 'Show On Screen Keyboard' })).not.toBeVisible();
   });
 
-  // TODO: #16080
-  test.skip('subject field does not show keyboard and defaults to system keyboard', async ({ page } : { page: Page }) => {
+  test('subject field does not show keyboard and defaults to system keyboard', async ({ page } : { page: Page }) => {
     // Setup
     await beforeEach(page);
     await page.getByPlaceholder('id = subject').click();
 
-    // Verify OSK is shown
+    // Verify the control is in system-keyboard mode: the OSK stays hidden,
+    // while the toggle UI remains available for switching keyboards.
     await expect(await page.evaluate(() => keyman.osk.isEnabled())).toBeTruthy();
-    await expect(await page.evaluate(() => keyman.osk.isVisible())).toBeTruthy();
+    await expect(await page.evaluate(() => keyman.osk.isVisible())).toBeFalsy();
     await expect(page.getByRole('img', { name: 'Use Web Keyboard' })).toBeVisible();
     await expect(page.getByRole('img', { name: 'Show On Screen Keyboard' })).not.toBeVisible();
 
@@ -121,7 +149,7 @@ test.describe('Control-by-control example from the guide', function () {
 
 test.describe('Full manual control example from the guide', function () {
   const beforeEach = async (page: Page) => {
-    await setTimeoutAndLoadPage(page, 'http://localhost:3000/build/docs/engine/guide/examples/__full-manual-control.html');
+    await setTimeoutAndLoadPage(page, 'http://localhost:3000/build/docs/engine/guide/examples/__full-manual-control.html', 6);
   }
 
   test('Shows English and no OSK after loading page', async ({ page } : { page: Page }) => {
@@ -205,7 +233,7 @@ test.describe('Full manual control example from the guide', function () {
 
 test.describe('Manual control example from the guide', function () {
   const beforeEach = async (page: Page) => {
-    await setTimeoutAndLoadPage(page, 'http://localhost:3000/build/docs/engine/guide/examples/__manual-control.html');
+    await setTimeoutAndLoadPage(page, 'http://localhost:3000/build/docs/engine/guide/examples/__manual-control.html', 1);
   }
 
   test('Does not show OSK after loading', async ({ page } : { page: Page }) => {

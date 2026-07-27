@@ -969,7 +969,7 @@ describe('app/browser:  ContextManager', function () {
 
         // Actual test:  transitioning focus from an independent-mode target
         // to a global-mode target.
-        contextManager.setKeyboardForTextStore(textStore, '', '');
+        contextManager.setKeyboardForTextStore(textStore, null, null);
 
         const beforekeyboardchange = sinon.fake();
         const keyboardchange = sinon.fake();
@@ -1017,7 +1017,7 @@ describe('app/browser:  ContextManager', function () {
 
         // Actual test:  transitioning focus from an independent-mode target
         // to a global-mode target.
-        contextManager.setKeyboardForTextStore(textStore, '', '');
+        contextManager.setKeyboardForTextStore(textStore, null, null);
 
         // Allow the indirect keyboard-change operation to resolve.
         await timedPromise(10);

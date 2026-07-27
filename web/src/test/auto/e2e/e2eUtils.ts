@@ -4,6 +4,8 @@
 
 import { type Locator, type Page } from "@playwright/test";
 
+declare const keyman: any;
+
 /**
  * Expands the keyboard selection menu and returns the text content of the
  * currently selected keyboard.
@@ -51,14 +53,7 @@ export async function loadPage(page: Page, url: string): Promise<Page> {
  * locator for the OSK title bar.
  */
 export async function clickFieldAndWaitForOSK(page: Page, fieldLocator: Locator): Promise<Locator> {
-  const keyboardchangePromise = page.evaluate(async () => {
-    return new Promise((resolve) => {
-      keyman.addEventListener('keyboardchange', function (kbd) {
-        resolve(kbd);
-      });
-    });
-  });
   await fieldLocator.click();
-  await keyboardchangePromise;
+  await page.waitForFunction(() => keyman.osk.isVisible());
   return page.locator('#keymanweb_title_bar');
 }
