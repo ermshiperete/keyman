@@ -293,6 +293,7 @@ export class KeymanEngineBase<
 
     kbdCache.on('stubadded', (stub) => {
       const eventRaiser = () => {
+        console.log(`Keyboard registered on kbdCache: ${stub.id}`);
         // The corresponding event is needed in order to update UI modules as new keyboard stubs "come online".
         this.legacyAPIEvents.callEvent('keyboardregistered', {
           internalName: stub.KI,

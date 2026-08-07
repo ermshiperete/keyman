@@ -45,6 +45,7 @@ test.describe('First example from the guide', function () {
   test('Input field shows US keyboard', async ({ page } : { page: Page }) => {
     // Setup
     await beforeEach(page);
+    console.log('Clicking input field...');
     const oskTitleBar = await clickFieldAndWaitForOSK(page, page.getByPlaceholder('Hello World'));
 
     // Verify OSK shows US keyboard
@@ -116,8 +117,11 @@ test.describe('Control-by-control example from the guide', function () {
 
   test('subject field does not show keyboard and defaults to system keyboard', async ({ page } : { page: Page }) => {
     // Setup
+    console.log('Calling beforeEach...');
     await beforeEach(page);
+    console.log('Clicking subject field...');
     await page.getByPlaceholder('id = subject').click();
+    console.log('Verify');
 
     // Verify the control is in system-keyboard mode: the OSK stays hidden,
     // while the toggle UI remains available for switching keyboards.
